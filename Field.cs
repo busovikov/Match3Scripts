@@ -30,13 +30,18 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
 
     public Animator highlighter;
 
+    private struct DeathTask
+    {
+        public SByte type;
+        public Vector2 tile;
+        public Vector2 spetial;
+    }
     private struct ToSwap
     {
         public bool swapped;
-        public Vector2 first;
-        public Vector2 second;
+        public TileMap.Cell first;
+        public TileMap.Cell second;
     }
-
     private ToSwap toSwap;
 
     // Start is called before the first frame update
@@ -105,9 +110,9 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
                 bool swapback = true;
                 if (destroy.destructionList != null)
                 {
-                    foreach (Vector3 v in destroy.destructionList)
+                    foreach (Match.Interval i in destroy.destructionList)
                     {
-                        if (Compare(toSwap.first, v) || Compare(toSwap.second, v))
+                        if (i.Belongs(toSwap.first.x, toSwap.first.y) || i.Belongs(toSwap.second.x, toSwap.second.y))
                         {
                             swapback = false;
                             break;
@@ -208,11 +213,18 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
 
     private void Swap(Vector2 first, Vector2 second)
     {
-        if (!tileMap.IsValid(first) || !tileMap.IsValid(second))
+        TileMap.Cell firstCell;
+        TileMap.Cell secondCell;
+        if (!TileMap.Cell.ToCell(first, out firstCell) ||
+            !TileMap.Cell.ToCell(second, out secondCell) ||
+            !tileMap.IsValid(firstCell) ||
+            !tileMap.IsValid(secondCell))
+        {
             return;
-        toSwap.first = first;
-        toSwap.second = second;
-        tileMap.GetTile(first).ExchangeWith(tileMap.GetTile(second), () => { toSwap.swapped = true; dirty = true; });
+        }
+        toSwap.first = firstCell;
+        toSwap.second = secondCell;
+        tileMap.GetTile(firstCell).ExchangeWith(tileMap.GetTile(secondCell), () => { toSwap.swapped = true; dirty = true; });
     }
 
     private void SetPosition(Vector2 position)
@@ -225,15 +237,19 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
                 highlighter.SetTrigger("Off");
                 actionAllowed = false;
                 HideSelection();
-                DestroyRow(offsetPosition);
-                rowDestoy--;
-                rowDestoy = null;
+                TileMap.Cell cell;
+                if (TileMap.Cell.ToCell(offsetPosition, out cell))
+                {
+                    DestroyRow(cell);
+                    rowDestoy--;
+                    rowDestoy = null;
+                }
             }
             else if (firstPosition != invalidPosition && IsNeighbours(firstPosition, offsetPosition))
             {
                 actionAllowed = false;
                 HideSelection();
-                Swap(firstPosition, offsetPosition);
+                Swap(firstPosition,offsetPosition);
                 firstPosition = invalidPosition;
             }
             else
@@ -244,18 +260,17 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
         }
     }
 
-    private void DestroyRow(Vector2 position)
+    private void DestroyRow(TileMap.Cell position)
     {
         if (!tileMap.IsValid(position))
             return;
 
-        Match.DestructableTiles row = new Match.DestructableTiles(0, (int)position.y, tileMap.width - 1); 
-        for (int x = 0; x < tileMap.width; x++)
-        {
-            Vector2 pos = new Vector2(x, position.y);
-            tileMap.GetTile(pos).invalid = true;
-            row.destructionList.Add(pos);
-        }
+        Match.DestructableTiles row = new Match.DestructableTiles(0, (Byte)position.y, (Byte)(tileMap.width - 1));
+        Match.Interval interval = new Match.Interval(Match.Interval.Orientation.Horizontal);
+        interval.cell.x = 0;
+        interval.cell.y = (Byte)position.y;
+        interval.count = (Byte)tileMap.width;
+        row.destructionList.Add(interval);
 
         StartCoroutine(Processing(row));
     }
@@ -283,6 +298,35 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
     {
         SetPosition(eventData.pointerCurrentRaycast.worldPosition);
     }
+
+    bool IsSpecial(Match.Interval interval, out Vector2 specialPos)
+    {
+        if (interval.crossing)
+        {
+            specialPos = interval.crossingCell.ToVector2();
+            return true;
+        }
+        
+        if (interval.count > 3)
+        {
+            if (interval.Belongs(toSwap.first.x, toSwap.first.y))
+            {
+                specialPos = toSwap.first.ToVector2();
+            }
+            else if (interval.Belongs(toSwap.second.x, toSwap.second.y))
+            {
+                specialPos = toSwap.second.ToVector2();
+            }
+            else
+            {
+                specialPos = interval.cell.ToVector2();
+            }
+            return true;
+        }
+        specialPos = Vector2.zero;
+        return false;
+    }
+
     private IEnumerator Processing(Match.DestructableTiles destroy)
     {
         if (destroy == null || destroy.destructionList.Count == 0)
@@ -290,24 +334,46 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
 
         processing++;
         comboCount++;
-        foreach (var p in destroy.destructionList)
+        Byte destroyed = 0;
+        foreach (Match.Interval interval in destroy.destructionList)
         {
-            Tile item = tileMap.GetTile(p);
-            tileMap.SpawnDead(item.tileType, item.transform);
-            item.DestroyContent();
+            Vector2 specialPos;
+            bool special = IsSpecial(interval, out specialPos);
+            
+            for (Byte i = 0; i < interval.count; i++)
+            {
+                Byte x = interval.mOrientation == Match.Interval.Orientation.Horizontal ? (Byte)(interval.cell.x + i) : interval.cell.x;
+                Byte y = interval.mOrientation == Match.Interval.Orientation.Horizontal ? interval.cell.y : (Byte)(interval.cell.y + i);
+                Tile item = tileMap.GetTile(x, y);
+
+                if (special)
+                {
+                    tileMap.SpawnSpecial(item.tileType, item.transform.position, specialPos);
+                }
+                else
+                {
+                    tileMap.SpawnDead(item.tileType, item.transform.position);
+                }
+
+                if (item.tileType != -1)
+                {
+                    item.DestroyContent();
+                    destroyed += interval.count;
+                }
+            }
         }
-        
-        if (destroy.destructionList.Count > 0)
+
+        if (destroyed > 0)
         {
-            int currentScore = Enumerable.Range(1, destroy.destructionList.Count - 3).Select((index) => index).Sum() + destroy.destructionList.Count;
+            int currentScore = Enumerable.Range(1, destroyed - 3).Select((index) => index).Sum() + destroyed;
             score.AddScore(currentScore);
             soundManager.PlayPop();
         }
 
-        yield return new WaitForSeconds(0.2f);
+        //yield return new WaitForSeconds(0.2f);
 
         List<Coroutine> dropAll = new List<Coroutine>();
-        for (int x = destroy.minX; x <= destroy.maxX; x++)
+        for (Byte x = destroy.minX; x <= destroy.maxX; x++)
         {
             dropAll.Add(StartCoroutine(DropAndReplaceWithNew(x, destroy.minY)));
         }
@@ -335,16 +401,16 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
             remainingPositions.Add(new List<int>(axis_y));
         }
 
-        int swap_x = 0;
-        int swap_y = 0;
+        Byte swap_x = 0;
+        Byte swap_y = 0;
         bool swap = false;
 
         for (int i = 0; i <  tileMap.width * tileMap.height; i++)
         {
             int index_x = UnityEngine.Random.Range(0, remainingPositions.Count);
             int index_y = UnityEngine.Random.Range(1, remainingPositions[index_x].Count);
-            int new_y = remainingPositions[index_x][index_y];
-            int new_x = remainingPositions[index_x][0];
+            Byte new_y = (Byte)remainingPositions[index_x][index_y];
+            Byte new_x = (Byte)remainingPositions[index_x][0];
             remainingPositions[index_x].RemoveAt(index_y);
             if (remainingPositions[index_x].Count == 1)
             {
@@ -369,12 +435,13 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
         }
         yield return until;
     }
-    private IEnumerator DropAndReplaceWithNew(int x, int fromY)
+    private IEnumerator DropAndReplaceWithNew(Byte x, Byte fromY)
     {
+        var pause = new WaitForSeconds(0.03f);
         List<Coroutine> animations = new List<Coroutine>();
         int destroyedCount = 0;
 
-        for (int y = fromY; y < tileMap.height; y++)
+        for (Byte y = fromY; y < tileMap.height; y++)
         {
             Tile tile = tileMap.GetTile(x, y);
             if (tile.content == null)
@@ -383,17 +450,19 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
             }
             else if (destroyedCount > 0)
             {
-                Tile bottom = tileMap.GetTile(x, y - destroyedCount);
+                Tile bottom = tileMap.GetTile(x, (Byte)(y - destroyedCount));
                 animations.Add(tile.DropTo(bottom));
             }
+            yield return pause;
         }
 
         for (int i = 0; i < destroyedCount; i++)
         {
-            var position = new Vector2(x, tileMap.height - destroyedCount + i);
+            var position = new TileMap.Cell(x, (Byte)(tileMap.height - destroyedCount + i));
             var offset = new Vector2(0, destroyedCount);
             bool dropped = true;
             animations.Add(tileMap.Create(position, offset, dropped));
+            yield return pause;
         }
 
         // Wait for all animations are done

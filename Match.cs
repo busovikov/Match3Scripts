@@ -6,24 +6,112 @@ using UnityEngine;
 public class Match 
 {
     private TileMap tiles;
-    private List<Vector3> setX;
-    private List<Vector3>[] setY;
+    private Interval setX;
+    private Interval[] setY;
 
     public bool bisy = false;
 
+    public class Interval
+    {
+        public Interval(Orientation orientation)
+        {
+            mOrientation = orientation;
+            Reset();
+        }
+
+        public void Reset()
+        {
+            cell = new TileMap.Cell();
+            crossingCell = new TileMap.Cell();
+            crossing = false;
+            count = 0;
+            type = -1;
+        }
+
+        public Interval Clone()
+        {
+            Interval interval = new Interval(mOrientation);
+            interval.cell = cell;
+            interval.crossingCell = crossingCell;
+            interval.crossing = crossing;
+            interval.count = count;
+            interval.type = type;
+            return interval;
+        }
+        public enum Orientation
+        { 
+            Horizontal = 0,
+            Vertical = 1
+        }
+
+        public static Interval operator++ (Interval i)
+        {
+            i.count++;
+            return i;
+        }
+
+        public bool Belongs(Byte pX, Byte pY)
+        {
+            if (mOrientation == Orientation.Horizontal)
+            {
+                return cell.y == pY && cell.x <= pX && pX < cell.x + count;
+            }
+            return cell.x == pX && cell.y <= pY && pY < cell.y + count;
+        }
+        public bool IsCrossing(Interval interval, out TileMap.Cell crossing)
+        {
+            crossing = new TileMap.Cell();
+            if (mOrientation == interval.mOrientation)
+            {
+                return false;
+            }
+            if (mOrientation == Orientation.Horizontal)
+            {
+                return IsCrossing(this, interval, out crossing);
+            }
+            return IsCrossing(interval, this, out crossing);
+        }
+
+        static bool IsCrossing(Interval horizontal, Interval vertical, out TileMap.Cell crossing)
+        {
+            crossing = new TileMap.Cell(vertical.cell.x, horizontal.cell.y);
+            return horizontal.cell.x <= vertical.cell.x && vertical.cell.x < horizontal.cell.x + horizontal.count &&
+                vertical.cell.y <= horizontal.cell.y && horizontal.cell.y < vertical.cell.y + vertical.count;
+        }
+
+        public Orientation mOrientation;
+        public TileMap.Cell cell;
+        public TileMap.Cell crossingCell;
+        public bool crossing;
+        public Byte count;
+        public SByte type;
+    }
+
+    public struct Crossing
+    {
+       public Crossing(Byte pX, Byte pY)
+       {
+           x = pX;
+           y = pY;
+           index = 0;
+       }
+        public Byte x;
+        public Byte y;
+        public SByte index;
+    }
     public class DestructableTiles
     {
-        public int minX;
-        public int minY;
-        public int maxX;
-        public HashSet<Vector3> destructionList;
+        public Byte minX;
+        public Byte minY;
+        public Byte maxX;
+        public List<Interval> destructionList;
 
-        public DestructableTiles(int minX, int minY, int maxX)
+        public DestructableTiles(Byte minX, Byte minY, Byte maxX)
         {
             this.minX = minX;
             this.minY = minY;
             this.maxX = maxX;
-            this.destructionList = new HashSet<Vector3>();
+            this.destructionList = new List<Interval>(10);
         }
     }
 
@@ -35,120 +123,170 @@ public class Match
 
     public bool SwapsAvailable()
     {
-        for (int x = 0; x < tiles.width; x++)
-            for (int y = 0; y < tiles.height; y++)
+        for (Byte x = 0; x < tiles.width; x++)
+            for (Byte y = 0; y < tiles.height; y++)
             {
-                var position = new Vector2(x, y);
-                var next = new Vector2(x, y + 1);
-                if (tiles.GetType(position) == tiles.GetType(next) && (ForTwo(position, Vector2.down) || ForTwo(next, Vector2.up)))
+                Vector2 position = new Vector2(x, y);
+                TileMap.Cell tmp;
+                TileMap.Cell.ToCell(position, out tmp);
+                int type = tiles.GetType(tmp);
+
+                Vector2 next = new Vector2(x, y + 1);
+                if (TileMap.Cell.ToCell(next, out tmp))
                 {
-                    return true;
+                    int nextType = tiles.GetType(tmp);
+                    if (type == nextType && (CheckPotentialOnEdge(position, Vector2.down, type) || CheckPotentialOnEdge(next, Vector2.up, type)))
+                    {
+                        return true;
+                    }
                 }
                 next = new Vector2(x, y + 2);
-                if (tiles.GetType(position) == tiles.GetType(next) && ForHole(position, Vector2.up))
+                if (TileMap.Cell.ToCell(next, out tmp))
                 {
-                    return true;
+                    int nextType = tiles.GetType(tmp);
+                    if (type == nextType && CheckPotentialBetween(position, Vector2.up, type))
+                    {
+                        return true;
+                    }
                 }
                 next = new Vector2(x + 1, y);
-                if (tiles.GetType(position) == tiles.GetType(next) && (ForTwo(position, Vector2.left) || ForTwo(next, Vector2.right)))
+                if (TileMap.Cell.ToCell(next, out tmp))
                 {
-                    return true;
+                    int nextType = tiles.GetType(tmp);
+                    if (type == nextType && (CheckPotentialOnEdge(position, Vector2.left, type) || CheckPotentialOnEdge(next, Vector2.right, type)))
+                    {
+                        return true;
+                    }
                 }
                 next = new Vector2(x + 2, y);
-                if (tiles.GetType(position) == tiles.GetType(next) && ForHole(position, Vector2.right))
+                if (TileMap.Cell.ToCell(next, out tmp))
                 {
-                    return true;
+                    int nextType = tiles.GetType(tmp);
+                    if (type == nextType && CheckPotentialBetween(position, Vector2.right, type))
+                    {
+                        return true;
+                    }
                 }
             }
         return false;
     }
-    private bool ForTwo(Vector2 position, Vector2 direction)
+    private bool CheckPotentialOnEdge(Vector2 position, Vector2 direction, int type)
     {
-        var type = tiles.GetType(position);
-
         var forward = position + direction;
         var right = new Vector2(direction.y, direction.x);
         var left = -right;
 
-        return tiles.GetType(forward + direction) == type ||
-            tiles.GetType(forward + left) == type ||
-            tiles.GetType(forward + right) == type;
+        bool result = false;
+        TileMap.Cell tmp;
+        if (TileMap.Cell.ToCell(forward + direction, out tmp))
+        {
+            result |= tiles.GetType(tmp) == type;
+        }
+
+        if (TileMap.Cell.ToCell(forward + left, out tmp))
+        {
+            result |= tiles.GetType(tmp) == type;
+        }
+
+        if (TileMap.Cell.ToCell(forward + right, out tmp))
+        {
+            result |= tiles.GetType(tmp) == type;
+        }
+
+        return result;
     }
 
-    private bool ForHole(Vector2 position, Vector2 direction)
+    private bool CheckPotentialBetween(Vector2 position, Vector2 direction, int type)
     {
-        var type = tiles.GetType(position);
-
         var forward = position + direction;
         var right = new Vector2(direction.y, direction.x);
         var left = -right;
 
-        return tiles.GetType(forward + left) == type || tiles.GetType(forward + right) == type;
+        bool result = false;
+        TileMap.Cell tmp;
+        if (TileMap.Cell.ToCell(forward + left, out tmp))
+        {
+            result |= tiles.GetType(tmp) == type;
+        }
+
+        if (TileMap.Cell.ToCell(forward + right, out tmp))
+        {
+            result |= tiles.GetType(tmp) == type;
+        }
+
+        return result;
     }
     private void InitSets()
     {
-        setX = new List<Vector3>(tiles.width);
-        setY = new List<Vector3>[tiles.width];
+        setX = new Interval(Interval.Orientation.Horizontal);
+        setY = new Interval[tiles.width];
         for (int i = 0; i < tiles.width; i++)
         {
-            setY[i] = new List<Vector3>(tiles.height);
+            setY[i] = new Interval(Interval.Orientation.Vertical);
         }
     }
 
     public bool IsAny(out DestructableTiles destructableTiles)
     {
-        destructableTiles = new DestructableTiles(int.MaxValue, int.MaxValue, 0);
-        for (int y = 0; y < tiles.height; y++)
+        destructableTiles = new DestructableTiles(Byte.MaxValue, Byte.MaxValue, 0);
+        for (Byte y = 0; y < tiles.height; y++)
         {
-            for (int x = 0; x < tiles.width; x++)
+            for (Byte x = 0; x < tiles.width; x++)
             {
-                StackOn(x, y, setX, destructableTiles);
-                StackOn(x, y, setY[x], destructableTiles);
+                StackOn(x, y, ref setX, destructableTiles);
+                StackOn(x, y, ref setY[x], destructableTiles);
                 if (y == tiles.height - 1)
                 {
-                    Sink(setY[x], destructableTiles);
+                    Sink(ref setY[x], destructableTiles);
                 }
             }
-            Sink(setX, destructableTiles);
+            Sink(ref setX, destructableTiles);
         }
         
          return destructableTiles.destructionList.Count > 0;
     }
-    private void StackOn(int x, int y, List<Vector3> set, DestructableTiles destructableTiles)
+
+    private void StackOn(Byte x, Byte y, ref Interval interval, DestructableTiles destructableTiles)
     {
-        int type = tiles.GetType(x, y);
-        if (set.Count > 0 && set[0].z != type) // Store type in z to avoid checking for validity
+        SByte type = tiles.GetType(x, y);
+        if (interval.count > 0 && interval.type != type)
         {
-            Sink(set, destructableTiles);
+            Sink(ref interval, destructableTiles);
         }
         if (tiles.IsValid(x, y))
         {
-            set.Add(new Vector3(x, y, type));
+            if (interval.count == 0)
+            {
+                interval.type = type;
+                interval.cell.x = x;
+                interval.cell.y = y;
+            }
+            interval++;
         }
     }
 
-    private void Sink(List<Vector3> set, DestructableTiles destructableTiles)
+    private void Sink(ref Interval interval, DestructableTiles destructableTiles)
     {
-        if (set.Count >= 3)
+        if (interval.count >= 3)
         {
-            foreach (Vector3 v in set) 
-            { 
-                tiles.GetTile(v).invalid = true;
-                if (v.x > destructableTiles.maxX)
+            Byte maxX = interval.mOrientation == Interval.Orientation.Horizontal ? (Byte)(interval.cell.x + interval.count - 1) : interval.cell.x;
+            destructableTiles.minX = Math.Min(destructableTiles.minX, interval.cell.x);
+            destructableTiles.maxX = Math.Max(destructableTiles.maxX, maxX);
+            destructableTiles.minY = Math.Min(destructableTiles.minY, interval.cell.y);
+
+            foreach (Interval currentInterval in destructableTiles.destructionList)
+            {
+                TileMap.Cell crossing;
+                if (interval.IsCrossing(currentInterval, out crossing))
                 {
-                    destructableTiles.maxX = (int)v.x;
-                }
-                if (v.x < destructableTiles.minX)
-                {
-                    destructableTiles.minX = (int)v.x;
-                }
-                if (v.y < destructableTiles.minY)
-                {
-                    destructableTiles.minY = (int)v.y;
+                    interval.crossing = currentInterval.crossing = true;
+                    interval.crossingCell = currentInterval.crossingCell = crossing;
+                    Debug.Log("Crossing");
                 }
             }
-            destructableTiles.destructionList.UnionWith(set);
+            destructableTiles.destructionList.Add(interval.Clone());
         }
-        set.Clear();
+        interval.Reset();
     }
+
 }

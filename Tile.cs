@@ -8,7 +8,7 @@ public class Tile : MonoBehaviour
     [SerializeField]
     public GameObject container;
     public GameObject content;
-    public int tileType;
+    public SByte tileType;
     public bool invalid = false;
 
     private Animator animator;
@@ -92,7 +92,7 @@ public class Tile : MonoBehaviour
     public void DestroyContent()
     {
         //StopCoroutine(SwapAnimation());
-        tileType = 0;
+        tileType = -1;
         content.SetActive(false);
         content.transform.SetParent(null);
         content = null;
@@ -110,12 +110,12 @@ public class Tile : MonoBehaviour
             tileToDrop.content.transform.SetParent(tileToDrop.container.transform);
 
             content = null;
-            tileType = 0;
+            tileType = -1;
             return StartCoroutine(tileToDrop.SwapAnimation(true));
         }
         return null;
     }
-    public Coroutine CreateContent(int type, bool dropped, Vector3 offset = default)
+    public Coroutine CreateContent(SByte type, bool dropped, Vector3 offset = default)
     {
         //content = Instantiate(prefab, container.transform.position + offset, Quaternion.identity, container.transform);
         ObjectPool.PooledObject pooledObj = ObjectPool.Instance.GetAlive(type);

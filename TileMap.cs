@@ -1,17 +1,45 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 using UnityEngine;
 
 public class TileMap : MonoBehaviour
 {
-    public int width;
-    public int height;
+    public Byte width;
+    public Byte height;
     public GameObject goal;
     public GameObject prefab;
 
     private Tile[,] tiles;
     private int goalType;
+
+    public struct Cell
+    {
+        public Cell(Byte pX, Byte pY)
+        {
+            x = pX;
+            y = pY;
+        }
+
+        public Vector2 ToVector2()
+        {
+            return new Vector2(x, y);
+        }
+        public static bool ToCell(Vector2 pos, out Cell cell)
+        {
+            cell = new Cell(0, 0);
+            if (pos.x < 0 || pos.y < 0)
+                return false;
+
+            cell.x = (Byte)pos.x;
+            cell.y = (Byte)pos.y;
+            return true;
+        }
+
+        public Byte x;
+        public Byte y;
+    }
 
     //private GameObject[,] DeadPool;
     void Awake()
@@ -25,8 +53,8 @@ public class TileMap : MonoBehaviour
         tiles = new Tile[width, height];
 
         List<int> types = Enumerable.Range(0, ObjectPool.Instance.alive.sprites.Length).Select((index) => index).ToList();
-        for (int i = 0; i < width; i++)
-            for (int j = 0; j < height; j++)
+        for (Byte i = 0; i < width; i++)
+            for (Byte j = 0; j < height; j++)
             {
                 var position = new Vector3(i, j, 0) + transform.position;
                 Tile tile = GameObject.Instantiate(prefab, position, Quaternion.identity, transform).GetComponent<Tile>();
@@ -35,67 +63,84 @@ public class TileMap : MonoBehaviour
             }
     }
 
-    public Coroutine Create(Vector2 position, Vector2 offset, bool dropped = false)
+    public Coroutine Create(Cell position, Vector2 offset, bool dropped = false)
     {
-        var index = UnityEngine.Random.Range(0, ObjectPool.Instance.alive.sprites.Length);
+        SByte index = (SByte)UnityEngine.Random.Range(0, ObjectPool.Instance.alive.sprites.Length);
         return GetTile(position).CreateContent(index, dropped, offset);
     }
-    private void InitContent(int x, int y, List<int> types)
+    private void InitContent(Byte x, Byte y, List<int> types)
     {
-        Vector2 position = new Vector2(x, y);
+        Cell position = new Cell(x, y);
         List<int> allowedTypes = new List<int>(types);
-        var back = GetType(new Vector2(x - 1, y));
-        if (back == GetType(new Vector2(x - 2, y)))
+        if (x > 1)
         {
-            allowedTypes.Remove(back);
+            SByte back = GetType(new Cell((Byte)(x - 1), y));
+            if (back == GetType(new Cell((Byte)(x - 2), y)))
+            {
+                allowedTypes.Remove(back);
+            }
         }
-        var down = GetType(new Vector2(x, y - 1));
-        if (down == GetType(new Vector2(x, y - 2)))
+        if (y > 1)
         {
-            allowedTypes.Remove(down);
+            var down = GetType(new Cell(x, (Byte)(y - 1)));
+            if (down == GetType(new Cell(x, (Byte)(y - 2))))
+            {
+                allowedTypes.Remove(down);
+            }
         }
-
-        var index = allowedTypes[UnityEngine.Random.Range(0, allowedTypes.Count)];
+        SByte index = (SByte)allowedTypes[UnityEngine.Random.Range(0, allowedTypes.Count)];
         const bool dropped = false;
         GetTile(position).CreateContent( index, dropped);
     }
 
-    public Tile GetTile(Vector2 position)
+    public Tile GetTile(Cell position)
     {
-        return GetTile((int)position.x, (int)position.y);
+        return GetTile(position.x, position.y);
     }
-    public Tile GetTile(int x, int y)
+    public Tile GetTile(Byte x, Byte y)
     {
         return tiles[x, y];
     }
-    public int GetType(Vector2 arrayPosition)
+    public SByte GetType(Cell arrayPosition)
     {
-        return GetType((int)arrayPosition.x, (int)arrayPosition.y);
+        return GetType(arrayPosition.x, arrayPosition.y);
     }
 
-    public int GetType(int x, int y)
+    public SByte GetType(Byte x, Byte y)
     {
         if (!IsValid(x, y))
             return -1;
         return tiles[x, y].tileType;
     }
-    public bool IsValid(Vector2 arrayPosition)
+    public bool IsValid(Cell arrayPosition)
     {
-        return IsValid((int)arrayPosition.x, (int)arrayPosition.y);
+        return IsValid(arrayPosition.x, arrayPosition.y);
     }
 
-    public bool IsValid(int x, int y)
+    public bool IsValid(Byte x, Byte y)
     {
-        bool withInBoundaries = y >= 0 && y < height && x >= 0 && x < width;
+        bool withInBoundaries = y < height && x < width;
         return withInBoundaries && !tiles[x, y].invalid && tiles[x, y].IsSet();
     }
 
-    internal void SpawnDead(int tileType, Transform transform)
+    internal void SpawnSpecial(int tileType, Vector2 position, Vector2 specialPos)
     {
         ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(tileType);
 
-        dead.obj.transform.position = transform.position;
-        dead.obj.SetActive(true);
+        dead.obj.transform.position = position;
+        //dead.obj.SetActive(true);
+
+        var toGoal = specialPos - position;
+        //dead.anim.SetTrigger("Dead");
+        dead.body.gravityScale = 0;
+        dead.body.velocity = toGoal * 1f; //, ForceMode2D.Impulse );
+    }
+    public void SpawnDead(int tileType, Vector2 position)
+    {
+        ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(tileType);
+
+        dead.obj.transform.position = position;
+        //dead.obj.SetActive(true);
         
         if (tileType != goalType)
         {
@@ -107,7 +152,7 @@ public class TileMap : MonoBehaviour
         }
         else
         {
-            var toGoal =  goal.transform.position - transform.position;
+            var toGoal =  (Vector2)(goal.transform.position) - position;
             dead.anim.SetTrigger("Dead");
             dead.body.gravityScale = 0;
             dead.body.velocity = toGoal * 2.5f; //, ForceMode2D.Impulse );
