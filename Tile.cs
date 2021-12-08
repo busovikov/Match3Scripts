@@ -17,6 +17,47 @@ public class Tile : MonoBehaviour
         animator = GetComponent<Animator>();
     }
 
+    public Coroutine Engulf(GameObject[] toEngulf)
+    {
+        return StartCoroutine(SwapAnimation(toEngulf));
+    }
+
+    public IEnumerator SwapAnimation(GameObject[] toEngulf)
+    {
+        float elapsed = 0f;
+        float duration = 0.15f;
+        GameObject[] contents = (GameObject[])toEngulf.Clone();
+        Vector3[] InitialOffset = new Vector3[contents.Length];
+        for (int i = 0; i < contents.Length; i++)
+        {
+            if (contents[i] != null)
+            {
+                InitialOffset[i] = contents[i].transform.position;
+            }
+        }
+
+        while (elapsed < duration)
+        {
+            for (int i = 0; i < contents.Length; i++)
+            {
+                if (contents[i] != null)
+                {
+                    contents[i].transform.position = Vector2.Lerp(InitialOffset[i], container.transform.position, elapsed / duration);
+                }
+            }
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        for (int i = 0; i < contents.Length; i++)
+        {
+            if (contents[i] != null)
+            {
+                contents[i].SetActive(false);
+            }
+        }
+    }
+
     public bool ExchangeWith(Tile other, Action onExchanged)
     {
         if (content == null || other.content == null)
@@ -89,13 +130,18 @@ public class Tile : MonoBehaviour
         animator.enabled = false;
     }
 
-    public void DestroyContent()
+    public GameObject Detach()
     {
-        //StopCoroutine(SwapAnimation());
+        var tmp = content;
         tileType = -1;
-        content.SetActive(false);
         content.transform.SetParent(null);
         content = null;
+
+        return tmp;
+    }
+    public void DestroyContent()
+    {
+        Detach().SetActive(false);
     }
 
     public Coroutine DropTo(Tile tileToDrop)

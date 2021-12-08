@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class ObjectPool : MonoBehaviour
 {
+    #region
     [HideInInspector]
     public static ObjectPool Instance;
     public struct PooledObject
@@ -53,9 +54,11 @@ public class ObjectPool : MonoBehaviour
             pool = new List<PooledObject>(amount);
         }
     }
+    #endregion
 
     public Pooled dead;
     public Pooled alive;
+    public Pooled Special;
 
     void Awake()
     {

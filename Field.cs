@@ -299,11 +299,11 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
         SetPosition(eventData.pointerCurrentRaycast.worldPosition);
     }
 
-    bool IsSpecial(Match.Interval interval, out Vector2 specialPos)
+    bool IsSpecial(Match.Interval interval, out TileMap.Cell specialPos)
     {
         if (interval.crossing)
         {
-            specialPos = interval.crossingCell.ToVector2();
+            specialPos = interval.crossingCell;
             return true;
         }
         
@@ -311,19 +311,19 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
         {
             if (interval.Belongs(toSwap.first.x, toSwap.first.y))
             {
-                specialPos = toSwap.first.ToVector2();
+                specialPos = toSwap.first;
             }
             else if (interval.Belongs(toSwap.second.x, toSwap.second.y))
             {
-                specialPos = toSwap.second.ToVector2();
+                specialPos = toSwap.second;
             }
             else
             {
-                specialPos = interval.cell.ToVector2();
+                specialPos = interval.cell;
             }
             return true;
         }
-        specialPos = Vector2.zero;
+        specialPos = new TileMap.Cell();
         return false;
     }
 
@@ -334,33 +334,42 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
 
         processing++;
         comboCount++;
+        List<Coroutine> engulfAll = new List<Coroutine>();
         Byte destroyed = 0;
         foreach (Match.Interval interval in destroy.destructionList)
         {
-            Vector2 specialPos;
+            TileMap.Cell specialPos;
             bool special = IsSpecial(interval, out specialPos);
-            
+            GameObject[] toEngulfBySpecial = new GameObject[interval.count];
             for (Byte i = 0; i < interval.count; i++)
             {
                 Byte x = interval.mOrientation == Match.Interval.Orientation.Horizontal ? (Byte)(interval.cell.x + i) : interval.cell.x;
                 Byte y = interval.mOrientation == Match.Interval.Orientation.Horizontal ? interval.cell.y : (Byte)(interval.cell.y + i);
                 Tile item = tileMap.GetTile(x, y);
 
+                if (item.tileType == -1)
+                {
+                    continue;
+                }
                 if (special)
                 {
-                    tileMap.SpawnSpecial(item.tileType, item.transform.position, specialPos);
+                    toEngulfBySpecial[i] = item.Detach();
+                    
+                    continue;
                 }
-                else
-                {
-                    tileMap.SpawnDead(item.tileType, item.transform.position);
-                }
-
-                if (item.tileType != -1)
-                {
-                    item.DestroyContent();
-                    destroyed += interval.count;
-                }
+                tileMap.SpawnDead(item.tileType, item.transform.position);
+                item.DestroyContent();
+                destroyed += interval.count;
             }
+            if (special)
+            {
+                engulfAll.Add(tileMap.GetTile(specialPos).Engulf(toEngulfBySpecial));
+            }
+        }
+
+        foreach (Coroutine engulfTask in engulfAll)
+        {
+            yield return engulfTask;
         }
 
         if (destroyed > 0)

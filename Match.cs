@@ -281,7 +281,6 @@ public class Match
                 {
                     interval.crossing = currentInterval.crossing = true;
                     interval.crossingCell = currentInterval.crossingCell = crossing;
-                    Debug.Log("Crossing");
                 }
             }
             destructableTiles.destructionList.Add(interval.Clone());
