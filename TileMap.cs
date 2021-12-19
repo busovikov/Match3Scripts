@@ -41,7 +41,24 @@ public class TileMap : MonoBehaviour
         public Byte y;
     }
 
-    //private GameObject[,] DeadPool;
+   public enum AliveType
+    {
+        Bat = 0,
+        Cat = 1,
+        Ghost = 2,
+        Pumpkin = 3,
+        Zombie = 4
+    }
+    public enum SpecialType
+    {
+        Rocket_V = 13,
+        Rocket_H = 14,
+        Caudron = 15,
+        Poison_Green = 16,
+        Poison_Blue = 17,
+        Poison_Black = 18,
+    }
+
     void Awake()
     {
         
@@ -67,6 +84,12 @@ public class TileMap : MonoBehaviour
     {
         SByte index = (SByte)UnityEngine.Random.Range(0, ObjectPool.Instance.alive.sprites.Length);
         return GetTile(position).CreateContent(index, dropped, offset);
+    }
+
+    public Coroutine CreateSpecial(Cell position, SByte index)
+    {
+        return GetTile(position).CreateContentSpecial(index);
+
     }
     private void InitContent(Byte x, Byte y, List<int> types)
     {
@@ -123,18 +146,6 @@ public class TileMap : MonoBehaviour
         return withInBoundaries && !tiles[x, y].invalid && tiles[x, y].IsSet();
     }
 
-    internal void SpawnSpecial(int tileType, Vector2 position, Vector2 specialPos)
-    {
-        ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(tileType);
-
-        dead.obj.transform.position = position;
-        //dead.obj.SetActive(true);
-
-        var toGoal = specialPos - position;
-        //dead.anim.SetTrigger("Dead");
-        dead.body.gravityScale = 0;
-        dead.body.velocity = toGoal * 1f; //, ForceMode2D.Impulse );
-    }
     public void SpawnDead(int tileType, Vector2 position)
     {
         ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(tileType);

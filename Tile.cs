@@ -82,9 +82,9 @@ public class Tile : MonoBehaviour
     }
     public IEnumerator SyncContent(Tile other, Action onExchanged)
     {
-        Coroutine first =  StartCoroutine(SwapAnimation());
+        Coroutine first = StartCoroutine(SwapAnimation());
         Coroutine second = StartCoroutine(other.SwapAnimation());
-        
+
         yield return first;
         yield return second;
 
@@ -105,8 +105,8 @@ public class Tile : MonoBehaviour
         float elapsed = 0f;
         float duration = 0.2f;
         var InitialOffset = content.transform.position;
-        
-        while(elapsed < duration)
+
+        while (elapsed < duration)
         {
             content.transform.position = Vector2.Lerp(InitialOffset, container.transform.position, elapsed / duration);
             elapsed += Time.deltaTime;
@@ -118,17 +118,22 @@ public class Tile : MonoBehaviour
         {
             invalid = false;
             animator.enabled = true;
-            content.transform.localPosition = Vector3.zero;
-            content.transform.localScale = Vector3.one * 0.9f;
             animator.SetTrigger("Dropped");
         }
-        
+
     }
 
     public void OnDropAnimationEnded()
     {
         animator.enabled = false;
-    }
+        if (content != null)
+        {
+            container.transform.rotation = Quaternion.identity;
+            content.transform.rotation = Quaternion.identity;
+            content.transform.localScale = Vector3.one * 0.9f;
+            content.transform.localPosition = Vector3.zero;
+        }
+    } 
 
     public GameObject Detach()
     {
@@ -178,5 +183,22 @@ public class Tile : MonoBehaviour
         return null;
     }
 
+    public Coroutine CreateContentSpecial(SByte type)
+    {
+        //content = Instantiate(prefab, container.transform.position + offset, Quaternion.identity, container.transform);
+        ObjectPool.PooledObject pooledObj = ObjectPool.Instance.GetSpecial(type);
+        pooledObj.obj.transform.position = container.transform.position;
+        content = pooledObj.obj;
+        content.transform.SetParent(container.transform);
+        tileType = (SByte)(type + 10);
+        animator.enabled = true;
+        animator.SetTrigger("Special");
+        return StartCoroutine(WaitForAnimationDone());
+    }
+
+    public IEnumerator WaitForAnimationDone()
+    {
+        yield return new WaitUntil(() => { return animator.enabled == false; });
+    }
 
 }

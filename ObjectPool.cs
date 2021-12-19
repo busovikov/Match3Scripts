@@ -58,7 +58,7 @@ public class ObjectPool : MonoBehaviour
 
     public Pooled dead;
     public Pooled alive;
-    public Pooled Special;
+    public Pooled special;
 
     void Awake()
     {
@@ -141,6 +141,14 @@ public class ObjectPool : MonoBehaviour
         o.spriteRenderer.sprite = alive.GetSprite(type);
         o.obj.SetActive(true);
         o.obj.transform.localScale = Vector3.one * .9f;
+        return o;
+    }
+
+    public PooledObject GetSpecial(int type)
+    {
+        PooledObject o = Get(special);
+        o.spriteRenderer.sprite = special.GetSprite(type);
+        o.obj.SetActive(true);
         return o;
     }
 }

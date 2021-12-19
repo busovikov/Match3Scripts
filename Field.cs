@@ -23,6 +23,7 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
     private Boosters boosters;
     private int comboCount = -1;
     private int processing = 0;
+    private float lastTimeClick = 0f;
     private bool dirty = false;
     private bool checkAvailableNextFrame = false;
     private bool actionAllowed = true;
@@ -227,12 +228,13 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
         tileMap.GetTile(firstCell).ExchangeWith(tileMap.GetTile(secondCell), () => { toSwap.swapped = true; dirty = true; });
     }
 
-    private void SetPosition(Vector2 position)
+    private void SetPosition(Vector2 position, bool drag)
     {
         Vector2 offsetPosition = ToField(position - (Vector2)colliderCache.transform.position);
+        bool tapped = IsTapped();
         if (actionAllowed && firstPosition != offsetPosition)
         {
-            if (rowDestoy!=null)
+            if (rowDestoy != null)
             {
                 highlighter.SetTrigger("Off");
                 actionAllowed = false;
@@ -258,6 +260,11 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
                 ShowSelection(firstPosition);
             }
         }
+        else if (actionAllowed && firstPosition == offsetPosition  && !drag && tapped)
+        {
+            //ProcessIfCpecial(offsetPosition);
+            Debug.Log("Tapped");
+        }
     }
 
     private void DestroyRow(TileMap.Cell position)
@@ -275,6 +282,39 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
         StartCoroutine(Processing(row));
     }
 
+    private void ProcessIfCpecial(params Vector2[] cells)
+    { 
+    
+    }
+    private void ActivateIfSpecial(SByte type)
+    {
+        if (type == (SByte)TileMap.SpecialType.Rocket_V)
+        {
+            Debug.Log("Rocket_V");
+        } 
+        else if (type == (SByte)TileMap.SpecialType.Rocket_H)
+        {
+            Debug.Log("Rocket_H");
+        }
+        else if (type == (SByte)TileMap.SpecialType.Caudron)
+        {
+            Debug.Log("Caudron");
+        }
+        else if (type == (SByte)TileMap.SpecialType.Poison_Green)
+        {
+            Debug.Log("Poison_Green");
+        } 
+        else if (type == (SByte)TileMap.SpecialType.Poison_Blue)
+        {
+            Debug.Log("Poison_Blue");
+        } 
+        else if (type == (SByte)TileMap.SpecialType.Poison_Black)
+        {
+            Debug.Log("Poison_Black");
+        }
+
+    }
+
     private Vector2 ToField(Vector2 position)
     {
         return new Vector2((float)Math.Round(position.x), (float)Math.Round(position.y));
@@ -286,9 +326,23 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
 
         return xOffset == 1 && yOffset == 0 || xOffset == 0 && yOffset == 1;
     }
+
+    bool IsTapped()
+    {
+        float currentTimeClick = Time.realtimeSinceStartup;
+        float last = lastTimeClick;
+        lastTimeClick = currentTimeClick;
+        float diff = Mathf.Abs(currentTimeClick - last);
+        Debug.Log("Diff " + diff.ToString());
+        if (diff < 0.5f)
+        {
+            return true;
+        }
+        return false;
+    }
     public void OnPointerDown(PointerEventData eventData)
     {
-        SetPosition(eventData.pointerCurrentRaycast.worldPosition);
+        SetPosition(eventData.pointerCurrentRaycast.worldPosition, false);
     }
     public void OnPointerUp(PointerEventData eventData)
     {
@@ -296,7 +350,7 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
     }
     public void OnDrag(PointerEventData eventData)
     {
-        SetPosition(eventData.pointerCurrentRaycast.worldPosition);
+        SetPosition(eventData.pointerCurrentRaycast.worldPosition, true);
     }
 
     bool IsSpecial(Match.Interval interval, out TileMap.Cell specialPos)
@@ -335,12 +389,14 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
         processing++;
         comboCount++;
         List<Coroutine> engulfAll = new List<Coroutine>();
+        Dictionary<TileMap.Cell, Byte> specialCount = new Dictionary<TileMap.Cell, Byte>();
         Byte destroyed = 0;
         foreach (Match.Interval interval in destroy.destructionList)
         {
             TileMap.Cell specialPos;
             bool special = IsSpecial(interval, out specialPos);
             GameObject[] toEngulfBySpecial = new GameObject[interval.count];
+
             for (Byte i = 0; i < interval.count; i++)
             {
                 Byte x = interval.mOrientation == Match.Interval.Orientation.Horizontal ? (Byte)(interval.cell.x + i) : interval.cell.x;
@@ -354,7 +410,6 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
                 if (special)
                 {
                     toEngulfBySpecial[i] = item.Detach();
-                    
                     continue;
                 }
                 tileMap.SpawnDead(item.tileType, item.transform.position);
@@ -363,8 +418,26 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
             }
             if (special)
             {
+                if (!specialCount.ContainsKey(specialPos))
+                {
+                    specialCount.Add(specialPos, 0);
+                }
+                if (interval.count == 4 && !interval.crossing && interval.mOrientation == Match.Interval.Orientation.Vertical)
+                {
+                    specialCount[specialPos] += 3; 
+                }
+                else
+                {
+                    specialCount[specialPos] += interval.count;
+                }
+
                 engulfAll.Add(tileMap.GetTile(specialPos).Engulf(toEngulfBySpecial));
             }
+        }
+
+        foreach (var specialPair in specialCount)
+        {
+            engulfAll.Add(tileMap.CreateSpecial(specialPair.Key, (SByte)(specialPair.Value - 3))); // can not go lower than 0
         }
 
         foreach (Coroutine engulfTask in engulfAll)
@@ -378,8 +451,6 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
             score.AddScore(currentScore);
             soundManager.PlayPop();
         }
-
-        //yield return new WaitForSeconds(0.2f);
 
         List<Coroutine> dropAll = new List<Coroutine>();
         for (Byte x = destroy.minX; x <= destroy.maxX; x++)
