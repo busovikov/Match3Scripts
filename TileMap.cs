@@ -51,12 +51,12 @@ public class TileMap : MonoBehaviour
     }
     public enum SpecialType
     {
-        Rocket_V = 13,
-        Rocket_H = 14,
-        Caudron = 15,
-        Poison_Green = 16,
-        Poison_Blue = 17,
-        Poison_Black = 18,
+        Rocket_V = 10,
+        Rocket_H = 11,
+        Caudron = 12,
+        Poison_Green = 13,
+        Poison_Blue = 14,
+        Poison_Black = 15,
     }
 
     void Awake()

@@ -109,16 +109,28 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
             if (toSwap.swapped)
             {
                 bool swapback = true;
-                if (destroy.destructionList != null)
+                bool firstDestroyed = false;
+                bool secondDestroyed = false;
+
+                if (destroy.destructionList != null && destroy.destructionList.Count > 0)
                 {
                     foreach (Match.Interval i in destroy.destructionList)
                     {
-                        if (i.Belongs(toSwap.first.x, toSwap.first.y) || i.Belongs(toSwap.second.x, toSwap.second.y))
+                        firstDestroyed |= i.Belongs(toSwap.first.x, toSwap.first.y);
+                        secondDestroyed |= i.Belongs(toSwap.second.x, toSwap.second.y);
+                        if (firstDestroyed || secondDestroyed)
                         {
                             swapback = false;
-                            break;
                         }
                     }
+                }
+                if (!firstDestroyed && ProcessIfCpecial(toSwap.first))
+                {
+                    swapback = false;
+                }
+                if (!secondDestroyed && ProcessIfCpecial(toSwap.second))
+                {
+                    swapback = false;
                 }
 
                 if (swapback)
@@ -262,7 +274,11 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
         }
         else if (actionAllowed && firstPosition == offsetPosition  && !drag && tapped)
         {
-            //ProcessIfCpecial(offsetPosition);
+            TileMap.Cell cell;
+            if (TileMap.Cell.ToCell(offsetPosition, out cell))
+            {
+                ProcessIfCpecial(cell);
+            }
             Debug.Log("Tapped");
         }
     }
@@ -282,16 +298,23 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
         StartCoroutine(Processing(row));
     }
 
-    private void ProcessIfCpecial(params Vector2[] cells)
-    { 
-    
-    }
-    private void ActivateIfSpecial(SByte type)
+    private bool ProcessIfCpecial(params TileMap.Cell[] cells)
     {
+        bool any = false;
+        foreach (TileMap.Cell cell in cells)
+        {
+            any |= ActivateIfSpecial(cell);
+        }
+
+        return any;
+    }
+    private bool ActivateIfSpecial(TileMap.Cell cell)
+    {
+        SByte type = tileMap.GetTile(cell).tileType;
         if (type == (SByte)TileMap.SpecialType.Rocket_V)
         {
             Debug.Log("Rocket_V");
-        } 
+        }
         else if (type == (SByte)TileMap.SpecialType.Rocket_H)
         {
             Debug.Log("Rocket_H");
@@ -303,16 +326,20 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
         else if (type == (SByte)TileMap.SpecialType.Poison_Green)
         {
             Debug.Log("Poison_Green");
-        } 
+        }
         else if (type == (SByte)TileMap.SpecialType.Poison_Blue)
         {
             Debug.Log("Poison_Blue");
-        } 
+        }
         else if (type == (SByte)TileMap.SpecialType.Poison_Black)
         {
             Debug.Log("Poison_Black");
         }
-
+        else
+        {
+            return false;
+        }
+        return true;
     }
 
     private Vector2 ToField(Vector2 position)
@@ -333,7 +360,6 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
         float last = lastTimeClick;
         lastTimeClick = currentTimeClick;
         float diff = Mathf.Abs(currentTimeClick - last);
-        Debug.Log("Diff " + diff.ToString());
         if (diff < 0.5f)
         {
             return true;
