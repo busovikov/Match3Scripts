@@ -106,11 +106,15 @@ public class Tile : MonoBehaviour
         float duration = 0.2f;
         var InitialOffset = content.transform.position;
 
-        while (elapsed < duration)
+        while (elapsed < duration && content != null)
         {
             content.transform.position = Vector2.Lerp(InitialOffset, container.transform.position, elapsed / duration);
             elapsed += Time.deltaTime;
             yield return null;
+        }
+        if (content == null)
+        {
+            yield break;
         }
         content.transform.position = container.transform.position;
 
@@ -137,11 +141,11 @@ public class Tile : MonoBehaviour
 
     public GameObject Detach()
     {
+        StopCoroutine(SwapAnimation());
         var tmp = content;
         tileType = -1;
         content.transform.SetParent(null);
         content = null;
-
         return tmp;
     }
     public void DestroyContent()
@@ -153,7 +157,7 @@ public class Tile : MonoBehaviour
     {
         if (content != null)
         {
-            //StopCoroutine(SwapAnimation());
+            StopCoroutine(SwapAnimation());
             tileToDrop.StopCoroutine(SwapAnimation());
             tileToDrop.invalid = true;
             tileToDrop.content = content;
@@ -168,7 +172,6 @@ public class Tile : MonoBehaviour
     }
     public Coroutine CreateContent(SByte type, bool dropped, Vector3 offset = default)
     {
-        //content = Instantiate(prefab, container.transform.position + offset, Quaternion.identity, container.transform);
         ObjectPool.PooledObject pooledObj = ObjectPool.Instance.GetAlive(type);
         pooledObj.obj.transform.position = container.transform.position + offset;
         content = pooledObj.obj;
@@ -185,7 +188,6 @@ public class Tile : MonoBehaviour
 
     public Coroutine CreateContentSpecial(SByte type)
     {
-        //content = Instantiate(prefab, container.transform.position + offset, Quaternion.identity, container.transform);
         ObjectPool.PooledObject pooledObj = ObjectPool.Instance.GetSpecial(type);
         pooledObj.obj.transform.position = container.transform.position;
         content = pooledObj.obj;
