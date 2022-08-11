@@ -8,11 +8,10 @@ public class TileMap : MonoBehaviour
 {
     public Byte width;
     public Byte height;
-    public GameObject goal;
     public GameObject prefab;
+    [SerializeField] Transform goal;
 
     private Tile[,] tiles;
-    private int goalType;
 
     public struct Cell
     {
@@ -56,7 +55,15 @@ public class TileMap : MonoBehaviour
         Caudron = 12,
         Poison_Green = 13,
         Poison_Blue = 14,
-        Poison_Black = 15,
+        Poison_Black = 15
+    }
+
+    public enum SpecialActivatedType
+    {
+        Rocket_UP = 0,
+        Rocket_DN = 1,
+        Rocket_LT = 2,
+        Rocket_RT = 3,
     }
 
     void Awake()
@@ -66,7 +73,8 @@ public class TileMap : MonoBehaviour
 
     private void Start()
     {
-        goalType = goal.GetComponent<Goals>().type;
+        SoundManager soundManager = FindObjectOfType<SoundManager>();
+
         tiles = new Tile[width, height];
 
         List<int> types = Enumerable.Range(0, ObjectPool.Instance.alive.sprites.Length).Select((index) => index).ToList();
@@ -75,11 +83,47 @@ public class TileMap : MonoBehaviour
             {
                 var position = new Vector3(i, j, 0) + transform.position;
                 Tile tile = GameObject.Instantiate(prefab, position, Quaternion.identity, transform).GetComponent<Tile>();
-                tiles[i, j] = tile;
+                tile.gameObject.name = position.ToString();
+                Bind(tile, i, j);
+                tile.contentDeleted += OnTileDeleted;
+                tile.contentDeleted += soundManager.OnTileDeleted;
+                tile.upIsEmpty += OnUpIsEmpty;
                 InitContent(i, j, types);
             }
     }
 
+    void Bind(Tile tile, Byte x, Byte y)
+    {
+        tiles[x, y] = tile;
+
+        int x2 = x - 1;
+        int y2 = y - 1;
+        if (x2 >= 0)
+        {
+            tile.left = tiles[x2, y];
+            tiles[x2, y].right = tile;
+        }
+        if (y2 >= 0)
+        {
+            tile.down = tiles[x, y2];
+            tiles[x, y2].up = tile;
+        }
+    }
+    void OnTileDeleted(Tile sender, SByte type)
+    {
+        SpawnDead(type, sender.transform.position);
+    }
+
+    void OnUpIsEmpty(Tile sender)
+    {
+        bool dropped = true;
+        Create(sender, Vector2.up, dropped);
+    }
+    public Coroutine Create(Tile tile, Vector2 offset, bool dropped = false)
+    {
+        SByte index = (SByte)UnityEngine.Random.Range(0, ObjectPool.Instance.alive.sprites.Length);
+        return tile.CreateContent(index, dropped, offset);
+    }
     public Coroutine Create(Cell position, Vector2 offset, bool dropped = false)
     {
         SByte index = (SByte)UnityEngine.Random.Range(0, ObjectPool.Instance.alive.sprites.Length);
@@ -113,7 +157,7 @@ public class TileMap : MonoBehaviour
         }
         SByte index = (SByte)allowedTypes[UnityEngine.Random.Range(0, allowedTypes.Count)];
         const bool dropped = false;
-        GetTile(position).CreateContent( index, dropped);
+        GetTile(position).CreateContent(index, dropped);
     }
 
     public Tile GetTile(Cell position)
@@ -143,31 +187,54 @@ public class TileMap : MonoBehaviour
     public bool IsValid(Byte x, Byte y)
     {
         bool withInBoundaries = y < height && x < width;
-        return withInBoundaries && !tiles[x, y].invalid && tiles[x, y].IsSet();
+        return withInBoundaries && !tiles[x, y].Invalid && tiles[x, y].IsSet();
     }
 
     public void SpawnDead(int tileType, Vector2 position)
     {
-        ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(tileType);
-
-        dead.obj.transform.position = position;
-        //dead.obj.SetActive(true);
-        
-        if (tileType != goalType)
+        const float rocketSpeed = 15f;
+        if (tileType == Goals.type)
         {
+            ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(tileType);
+            dead.obj.transform.position = position;
+            var toGoal = (Vector2)(goal.position) - position;
+            dead.anim.SetTrigger("Dead");
+            dead.body.gravityScale = 0;
+            dead.body.velocity = toGoal * 2.5f; //, ForceMode2D.Impulse );
+        }
+        else if (tileType < (SByte)TileMap.SpecialType.Rocket_V)
+        {
+            ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(tileType);
+            dead.obj.transform.position = position;
             var x = UnityEngine.Random.Range(-1f, 1f);
             var y = UnityEngine.Random.Range(0.1f, 1f);
             dead.body.gravityScale = 1;
             dead.body.velocity = new Vector2(x, y) * 5; //, ForceMode2D.Impulse);
             dead.anim.SetTrigger("Dead");
         }
-        else
+        else if (tileType == (SByte)TileMap.SpecialType.Rocket_V)
         {
-            var toGoal =  (Vector2)(goal.transform.position) - position;
-            dead.anim.SetTrigger("Dead");
-            dead.body.gravityScale = 0;
-            dead.body.velocity = toGoal * 2.5f; //, ForceMode2D.Impulse );
+            ObjectPool.PooledObject up = ObjectPool.Instance.GetSpecialActivated((SByte)TileMap.SpecialActivatedType.Rocket_UP);
+            ObjectPool.PooledObject down = ObjectPool.Instance.GetSpecialActivated((SByte)TileMap.SpecialActivatedType.Rocket_DN);
+
+            up.obj.transform.position = position;
+            up.body.gravityScale = 0;
+            up.body.velocity = Vector2.up * rocketSpeed;
+            down.obj.transform.position = position;
+            down.body.gravityScale = 0;
+            down.body.velocity = Vector2.down * rocketSpeed;
         }
-        
+        else if (tileType == (SByte)TileMap.SpecialType.Rocket_H)
+        {
+            ObjectPool.PooledObject left = ObjectPool.Instance.GetSpecialActivated((SByte)TileMap.SpecialActivatedType.Rocket_LT);
+            ObjectPool.PooledObject right = ObjectPool.Instance.GetSpecialActivated((SByte)TileMap.SpecialActivatedType.Rocket_RT);
+            left.obj.transform.position = position;
+            left.body.gravityScale = 0;
+            left.body.velocity = Vector2.left * rocketSpeed;
+            right.obj.transform.position = position;
+            right.body.gravityScale = 0;
+            right.body.velocity = Vector2.right * rocketSpeed;
+        }
+
     }
 }

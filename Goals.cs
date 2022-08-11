@@ -12,7 +12,7 @@ public class Goals : MonoBehaviour
     public Text label;
 
     [HideInInspector]
-    public int type;
+    public static int type;
     private Animator animator;
     private LevelLoader.GameMode gameMode;
     private int goal = 9;

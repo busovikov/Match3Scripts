@@ -59,6 +59,7 @@ public class ObjectPool : MonoBehaviour
     public Pooled dead;
     public Pooled alive;
     public Pooled special;
+    public Pooled specialActivated;
 
     void Awake()
     {
@@ -131,6 +132,8 @@ public class ObjectPool : MonoBehaviour
     {
         PooledObject o = Get(dead);
         o.spriteRenderer.sprite = dead.GetSprite(type);
+        o.spriteRenderer.color = Color.white;
+        o.obj.transform.rotation = Quaternion.identity;
         o.obj.SetActive(true);
         return o;
     }
@@ -148,6 +151,14 @@ public class ObjectPool : MonoBehaviour
     {
         PooledObject o = Get(special);
         o.spriteRenderer.sprite = special.GetSprite(type);
+        o.obj.SetActive(true);
+        return o;
+    }
+
+    public PooledObject GetSpecialActivated(int type)
+    {
+        PooledObject o = Get(specialActivated);
+        o.spriteRenderer.sprite = specialActivated.GetSprite(type);
         o.obj.SetActive(true);
         return o;
     }

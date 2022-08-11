@@ -106,7 +106,7 @@ public class LevelLoader : MonoBehaviour
         // Make sure user is on Android platform
         if (Application.platform == RuntimePlatform.Android)
         {
-            // Check if Back was pressed this frame
+            // Done if Back was pressed this frame
             if (Input.GetKeyDown(KeyCode.Escape))
             {
                 if (SceneManager.GetActiveScene().buildIndex == 0)

@@ -97,7 +97,11 @@ public class SoundManager : MonoBehaviour
         ShowVolumeSlider();
     }
 
-    private void Start()
+    public void OnTileDeleted(Tile sender, SByte type)
+    {
+        PlayPop();
+    }
+        private void Start()
     {
         InitSoundSources();
         var scene = SceneManager.GetActiveScene();

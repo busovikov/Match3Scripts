@@ -8,30 +8,85 @@ public class Tile : MonoBehaviour
     [SerializeField]
     public GameObject container;
     public GameObject content;
+    public GameObject[] toEngulf;
     public SByte tileType;
-    public bool invalid = false;
+    private bool invalid = false;
+
+    public Tile up, down, left, right;
+    public delegate void DeleteTileHandler(Tile sender, SByte type);
+    public event DeleteTileHandler contentDeleted;
+    public delegate void UpIsEmptyHandler(Tile sender);
+    public event UpIsEmptyHandler upIsEmpty;
+    public delegate void Engulfed();
+    public event Engulfed engulfed;
 
     private Animator animator;
+
+    public bool Invalid 
+    { 
+        get => invalid; 
+        set
+        { 
+            invalid = value;
+            if (invalid)
+                WatchDog.Inc();
+            else
+                WatchDog.Dec();
+        } 
+    }
+
     private void Awake()
     {
         animator = GetComponent<Animator>();
     }
 
-    public Coroutine Engulf(GameObject[] toEngulf)
+    private void OnTriggerEnter2D(Collider2D collision)
     {
-        return StartCoroutine(SwapAnimation(toEngulf));
+        DestroyContent();
     }
 
-    public IEnumerator SwapAnimation(GameObject[] toEngulf)
+    private void Update()
+    {
+        if (Invalid == false && content == null)
+        {
+            if (up != null)
+            {
+                up.DropTo(this);
+            }
+            else 
+            {
+                upIsEmpty?.Invoke(this);
+            }
+        }
+    }
+
+    public void OnEngulfed()
+    {
+        Invalid = false;
+    }
+    public void ToEngulf(Byte index, Tile tile)
+    {
+        engulfed += tile.OnEngulfed;
+        toEngulf[index] = tile.Detach();
+        tile.Invalid = true;
+    }
+    public Coroutine Engulf()
+    {
+        return StartCoroutine(SyncContents());
+    }
+
+    public IEnumerator SyncContents()
     {
         float elapsed = 0f;
-        float duration = 0.15f;
+        float duration = 1.2f;
         GameObject[] contents = (GameObject[])toEngulf.Clone();
+        toEngulf = null;
         Vector3[] InitialOffset = new Vector3[contents.Length];
         for (int i = 0; i < contents.Length; i++)
         {
             if (contents[i] != null)
             {
+                //contents[i].transform.SetParent(container.transform);
                 InitialOffset[i] = contents[i].transform.position;
             }
         }
@@ -43,7 +98,13 @@ public class Tile : MonoBehaviour
                 if (contents[i] != null)
                 {
                     contents[i].transform.position = Vector2.Lerp(InitialOffset[i], container.transform.position, elapsed / duration);
+                    if (container.transform.position == contents[i].transform.position)
+                    {
+                        contents[i].SetActive(false);
+                        contents[i] = null;
+                    }
                 }
+                
             }
             elapsed += Time.deltaTime;
             yield return null;
@@ -56,6 +117,8 @@ public class Tile : MonoBehaviour
                 contents[i].SetActive(false);
             }
         }
+        engulfed?.Invoke();
+        engulfed = null;
     }
 
     public bool ExchangeWith(Tile other, Action onExchanged)
@@ -63,8 +126,8 @@ public class Tile : MonoBehaviour
         if (content == null || other.content == null)
             return false;
 
-        other.invalid = true;
-        invalid = true;
+        other.Invalid = true;
+        Invalid = true;
 
         var tmp = other.content;
         other.content = this.content;
@@ -77,13 +140,13 @@ public class Tile : MonoBehaviour
         other.tileType = tileType;
         tileType = type;
 
-        StartCoroutine(SyncContent(other, onExchanged));
+        StartCoroutine(Swap(other, onExchanged));
         return true;
     }
-    public IEnumerator SyncContent(Tile other, Action onExchanged)
+    public IEnumerator Swap(Tile other, Action onExchanged)
     {
-        Coroutine first = StartCoroutine(SwapAnimation());
-        Coroutine second = StartCoroutine(other.SwapAnimation());
+        Coroutine first = StartCoroutine(SyncContent());
+        Coroutine second = StartCoroutine(other.SyncContent());
 
         yield return first;
         yield return second;
@@ -93,14 +156,14 @@ public class Tile : MonoBehaviour
             onExchanged();
         }
 
-        invalid = false;
-        other.invalid = false;
+        Invalid = false;
+        other.Invalid = false;
     }
     public bool IsSet()
     {
         return content != null && container.transform.position == content.transform.position;
     }
-    public IEnumerator SwapAnimation(bool dropped = false)
+    public IEnumerator SyncContent(bool dropped = false)
     {
         float elapsed = 0f;
         float duration = 0.2f;
@@ -114,22 +177,23 @@ public class Tile : MonoBehaviour
         }
         if (content == null)
         {
+            Invalid = false;
             yield break;
         }
         content.transform.position = container.transform.position;
 
         if (dropped)
         {
-            invalid = false;
-            animator.enabled = true;
-            animator.SetTrigger("Dropped");
+            Invalid = false;
+            //animator.enabled = true;
+            animator.Play("Tile_Droped", -1, 0);
         }
 
     }
 
     public void OnDropAnimationEnded()
     {
-        animator.enabled = false;
+        //animator.enabled = false;
         if (content != null)
         {
             container.transform.rotation = Quaternion.identity;
@@ -141,7 +205,11 @@ public class Tile : MonoBehaviour
 
     public GameObject Detach()
     {
-        StopCoroutine(SwapAnimation());
+        if (content == null)
+        {
+            return null;
+        }
+        StopCoroutine(SyncContent());
         var tmp = content;
         tileType = -1;
         content.transform.SetParent(null);
@@ -150,23 +218,32 @@ public class Tile : MonoBehaviour
     }
     public void DestroyContent()
     {
-        Detach().SetActive(false);
+        SByte type = tileType;
+        GameObject obj = Detach();
+        if (obj != null)
+        {
+            if (contentDeleted != null)
+            {
+                contentDeleted(this, type);
+            }
+            obj.SetActive(false);
+        }
     }
 
     public Coroutine DropTo(Tile tileToDrop)
     {
         if (content != null)
         {
-            StopCoroutine(SwapAnimation());
-            tileToDrop.StopCoroutine(SwapAnimation());
-            tileToDrop.invalid = true;
+            StopCoroutine(SyncContent());
+            tileToDrop.StopCoroutine(SyncContent());
+            tileToDrop.Invalid = true;
             tileToDrop.content = content;
             tileToDrop.tileType = tileType;
             tileToDrop.content.transform.SetParent(tileToDrop.container.transform);
 
             content = null;
             tileType = -1;
-            return StartCoroutine(tileToDrop.SwapAnimation(true));
+            return StartCoroutine(tileToDrop.SyncContent(true));
         }
         return null;
     }
@@ -177,11 +254,15 @@ public class Tile : MonoBehaviour
         content = pooledObj.obj;
         content.transform.SetParent(container.transform);
         tileType = type;
-        
+
         if (dropped)
         {
-            invalid = true;
-            return StartCoroutine(SwapAnimation(dropped));
+            Invalid = true;
+            return StartCoroutine(SyncContent(dropped));
+        }
+        else 
+        {
+            Invalid = false;
         }
         return null;
     }
@@ -193,14 +274,22 @@ public class Tile : MonoBehaviour
         content = pooledObj.obj;
         content.transform.SetParent(container.transform);
         tileType = (SByte)(type + 10);
-        animator.enabled = true;
-        animator.SetTrigger("Special");
+        //animator.enabled = true;
+        animator.Play("Tile_Special", -1, 0);
+        Debug.Log("animatio start " + Time.realtimeSinceStartup.ToString());
         return StartCoroutine(WaitForAnimationDone());
     }
 
     public IEnumerator WaitForAnimationDone()
     {
-        yield return new WaitUntil(() => { return animator.enabled == false; });
+        Debug.Log("animation stop " + animator.GetCurrentAnimatorStateInfo(0).normalizedTime.ToString());
+        while (animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1)
+        {
+            Debug.Log("animation " + animator.GetCurrentAnimatorStateInfo(0).normalizedTime.ToString());
+           yield return null;
+        }
+        Debug.Log("animation stop " + Time.realtimeSinceStartup.ToString());
+        //animator.enabled = true;
     }
 
 }

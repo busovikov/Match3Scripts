@@ -4,8 +4,74 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+
 public class LevelManager : MonoBehaviour
 {
+    public abstract class LevelContext
+    {
+        public LevelContext(Goals _goals, int _count)
+        {
+            Count = _count;
+            goals = _goals;
+        }
+        private bool levelDone = false;
+        private Goals goals;
+        private int count = 0;
+
+        public int Count { get => count; set => count = value; }
+
+        public virtual bool Done() 
+        {
+            if (!levelDone && (Count <= 0 || goals.reached))
+            {
+                levelDone = true;
+                return levelDone;
+            }
+            return false; 
+        }
+
+        public virtual void AddCount(int val)
+        {
+            Count += val;
+        }
+        public virtual void SubCount(int val)
+        {
+            Count -= val;
+        }
+    }
+
+    class MovesContext : LevelContext
+    {
+        public MovesContext(Goals _goals, int _count) : base(_goals, _count)
+        {
+        }
+    }
+    class TimeContext : LevelContext
+    {
+        public override bool Done() 
+        {
+            if (!base.Done())
+            {
+                accumulator += Time.deltaTime;
+                if (accumulator >= 1)
+                {
+                    accumulator -= 1;
+                    SubCount(1);
+                }
+            }
+            return base.Done(); 
+        }
+
+        public override void SubCount(int val)
+        {
+            base.SubCount(val);
+        }
+        private float accumulator = 0;
+
+        public TimeContext(Goals _goals, int _count) : base(_goals, _count)
+        {
+        }
+    }
     private static readonly string TriggerName = "Bonus";
     private static readonly string LevelMovesString = "Level.Moves";
     private static readonly string LevelTimesString = "Level.Times";
@@ -19,15 +85,16 @@ public class LevelManager : MonoBehaviour
     private Animator bonusAnimator;
     public ScoreUI stringValue;
     public ScoreUI stringLevel;
-    
-    private float accumulator = 0;
+    private ScoreManager score;
+    private LevelContext context;
+    [SerializeField]private Goals goals;
+
 
     [HideInInspector]
     public int moves = 0;
     [HideInInspector]
     public int level;
     [HideInInspector]
-    public bool running = false;
 
     public Text label;
     public GameObject bonus;
@@ -43,9 +110,36 @@ public class LevelManager : MonoBehaviour
 
     private void Start()
     {
+        score = FindObjectOfType<ScoreManager>();
+        var movesOrTime = goals.GetGoalForGameMode(LevelLoader.Instance.mode);
+        if (LevelLoader.Instance.mode == LevelLoader.GameMode.Moves)
+        {
+            StartAsMoves(LevelLoader.Instance.levelMoves > 0 ? LevelLoader.Instance.levelMoves : movesOrTime);
+        }
+        else
+        {
+            StartAsSeconds(LevelLoader.Instance.levelTime > 0 ? LevelLoader.Instance.levelTime : movesOrTime);
+        }
         string LevelString = LevelLoader.Instance.mode == LevelLoader.GameMode.Moves ? LevelMovesString : LevelTimesString;
         Config.LoadInt(LevelString, out this.level, this.level);
         stringLevel.Set(level);
+    }
+
+    private void Update()
+    {
+        if (context.Done())
+        {
+            score.AddScore(moves * 10);
+
+            if (goals.reached)
+            {
+                score.SetTotalScore();
+                NextLevel();
+            }
+            else
+                score.current = 0;
+            LevelLoader.EndLevel(goals.reached);
+        }
     }
 
     public void NextLevel()
@@ -57,57 +151,35 @@ public class LevelManager : MonoBehaviour
         stringValue.Set(0);
     }
 
-     public bool Check()
-    {
-        if (running && moves > 0)
-        {
-            accumulator += Time.deltaTime;
-            if (accumulator >= 1)
-            {
-                accumulator -= 1;
-                SubMoves(1);
-            }
-        }
-        return moves > 0;
-    }
-
     public void AddMoves(int val)
     {
-        moves += val;
-        stringValue.Set(moves);
+        context.AddCount(val);
+        stringValue.Set(context.Count);
         bonusVal.text = val.ToString();
         bonusAnimator.SetTrigger(TriggerName);
     }
 
     public void SubMoves(int val)
     {
-        moves -= val;
-        stringValue.Set(moves);
-        if (running && moves <= 0)
-        {
-            running = false;
-        }
+        context.SubCount(val);
+        stringValue.Set(context.Count);
+        
     }
 
     public void StartAsMoves(int val)
     {
-        SetValue(val);
+        stringValue.Set(val);
         label.text = MovesString;
         bonusHeader.text = BonusMovesString;
-    }
-
-    private void SetValue(int val)
-    {
-        moves = val;
-        stringValue.Set(moves);
+        context = new MovesContext(goals, val);
     }
 
     public void StartAsSeconds(int seconds)
     {
-        SetValue(seconds);
+        stringValue.Set(seconds);
         label.text = TimeString;
         bonusHeader.text = BonusTimeString;
-        running = true;
+        context = new TimeContext(goals, seconds);
     }
 
     
