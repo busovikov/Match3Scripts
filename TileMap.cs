@@ -11,6 +11,7 @@ public class TileMap : MonoBehaviour
     public GameObject prefab;
     [SerializeField] Transform goal;
 
+    public LevelGrid levelGrid;
     private Tile[,] tiles;
 
     public struct Cell
@@ -74,13 +75,20 @@ public class TileMap : MonoBehaviour
     private void Start()
     {
         SoundManager soundManager = FindObjectOfType<SoundManager>();
-
+        if (levelGrid != null)
+        {
+            width = levelGrid.width;
+            height = levelGrid.height;
+        }
         tiles = new Tile[width, height];
 
         List<int> types = Enumerable.Range(0, ObjectPool.Instance.alive.sprites.Length).Select((index) => index).ToList();
         for (Byte i = 0; i < width; i++)
             for (Byte j = 0; j < height; j++)
             {
+                if (levelGrid != null && levelGrid.tiles[i + j * width] == -1)
+                    continue;
+
                 var position = new Vector3(i, j, 0) + transform.position;
                 Tile tile = GameObject.Instantiate(prefab, position, Quaternion.identity, transform).GetComponent<Tile>();
                 tile.gameObject.name = position.ToString();
@@ -97,16 +105,21 @@ public class TileMap : MonoBehaviour
         tiles[x, y] = tile;
 
         int x2 = x - 1;
-        int y2 = y - 1;
-        if (x2 >= 0)
+        
+        if (x2 >= 0 && tiles[x2, y] != null)
         {
             tile.left = tiles[x2, y];
             tiles[x2, y].right = tile;
         }
-        if (y2 >= 0)
+
+        for (int y2 = y - 1; y2 >= 0; y2--)
         {
-            tile.down = tiles[x, y2];
-            tiles[x, y2].up = tile;
+            if (tiles[x, y2] != null)
+            {
+                tile.down = tiles[x, y2];
+                tiles[x, y2].up = tile;
+                break;
+            }
         }
     }
     void OnTileDeleted(Tile sender, SByte type)
@@ -187,7 +200,7 @@ public class TileMap : MonoBehaviour
     public bool IsValid(Byte x, Byte y)
     {
         bool withInBoundaries = y < height && x < width;
-        return withInBoundaries && !tiles[x, y].Invalid && tiles[x, y].IsSet();
+        return withInBoundaries && tiles != null && tiles[x, y] != null && !tiles[x, y].Invalid && tiles[x, y].IsSet();
     }
 
     public void SpawnDead(int tileType, Vector2 position)
