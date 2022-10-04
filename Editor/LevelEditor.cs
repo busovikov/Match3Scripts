@@ -1,86 +1,452 @@
-using System;
-using System.IO;
 using UnityEngine;
 using UnityEditor;
+using UnityEditor.EditorTools;
+using UnityEditor.ShortcutManagement;
+using Unity.Mathematics;
+using System.IO;
+using System.Linq;
+using UnityEditor.Overlays;
+using UnityEngine.UIElements;
+using Assets.Scripts.Editor;
 
-[CustomEditor(typeof(TileMap))]
+[CustomEditor(typeof(TileMap)), CanEditMultipleObjects]
 public class LevelEditor : Editor
 {
-    LevelGrid levelGrid;
+
+    public override void OnInspectorGUI()
+    {
+        GUILayout.Label("Tile Options");
+        DrawTileEditor();
+        GUILayout.Space(5f);
+        GUILayout.Label("Level Options");
+        DrawLevelEditor();
+        GUILayout.Space(5f);
+        DrawLevelsPanel();
+    }
+    
+    private void DrawTileEditor()
+    {
+        TileType currentTile = (target as TileMap).currentTile;
+
+        if (currentTile != null)
+        {
+            using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                var oldName = currentTile.name;
+                currentTile.name = GUILayout.TextField(currentTile.name);
+
+                var oldId = currentTile.id;
+                currentTile.id = (TileMap.AliveType)EditorGUILayout.EnumPopup("Type:", currentTile.id);
+
+                var oldImage = currentTile.image;
+                currentTile.image = (Texture2D)EditorGUILayout.ObjectField("Image", currentTile.image, typeof(Texture2D), false);
+
+                if (oldName != currentTile.name || oldImage != currentTile.image || oldId != currentTile.id)
+                    LevelEditorHelper.tilesDirty = true;
+            }
+        }
+
+    }
+
+    private void DrawLevelEditor()
+    {
+        using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+        {
+            TileMap tm = target as TileMap;
+
+            if (tm.currentLevel == null)
+                return;
+
+            var oldName = tm.currentLevel.name;
+            tm.currentLevel.name = GUILayout.TextField(tm.currentLevel.name);
+            var oldWidth = tm.currentLevel.width;
+            tm.currentLevel.width = (byte)math.clamp(math.round(EditorGUILayout.FloatField("Width", tm.currentLevel.width)), LevelEditorHelper.widthMin, LevelEditorHelper.widthMax);
+            var oldHeight = tm.currentLevel.height;
+            tm.currentLevel.height = (byte)math.clamp(math.round(EditorGUILayout.FloatField("Height", tm.currentLevel.height)), LevelEditorHelper.heightMin, LevelEditorHelper.heightMax);
+
+            var sizeChanged = tm.currentLevel.tiles.Length != tm.currentLevel.width * tm.currentLevel.height;
+            if (oldName != tm.currentLevel.name || sizeChanged)
+                LevelEditorHelper.levelsDirty = true;
+
+            if (sizeChanged || tm.currentLevel.tiles == null)
+            {
+                RebuidGrid(oldWidth, oldHeight);
+            }
+
+            using (new GUILayout.HorizontalScope())
+            {
+                if (LevelEditorHelper.levels.Count > 0 && GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20)))
+                {
+                    DeleteLevelGridInctance();
+                }
+                if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
+                {
+                    AddLevelGridInctance();
+                }
+                if (LevelEditorHelper.levelsDirty && GUILayout.Button("Save", GUILayout.Width(50), GUILayout.Height(20)))
+                {
+                    SaveLevelGridAssets();
+                }
+            }
+        }
+    }
+
+    private void RebuidGrid(int oldWidth, int oldHeight)
+    {
+        LevelEditorHelper.RebuildGrid(oldWidth, oldHeight, (target as TileMap).currentLevel);
+    }
+
+    private void DrawLevelsPanel()
+    {
+        var tm = target as TileMap;
+        if (GUILayout.Button("Make Default"))
+        {
+            tm.levelGrid = tm.currentLevel;
+        }
+        var levelList = LevelEditorHelper.levels.Select(l => 
+        {
+            if (tm.levelGrid != null && tm.levelGrid.name == l.name)
+                return "" + l.name + " = default";
+
+            return l.name; 
+        
+        }).ToArray();
+        LevelEditorHelper.levelScrollPosition = GUILayout.BeginScrollView(LevelEditorHelper.levelScrollPosition, GUILayout.MinHeight(100));
+        int level = GUILayout.SelectionGrid(LevelEditorHelper.selectedLevel, levelList, 1, EditorStyles.toolbarButton, GUILayout.Height(100));
+        
+        if (LevelEditorHelper.levels.Count > 0 && (level != LevelEditorHelper.selectedLevel || tm.currentLevel == null))
+        {
+            LevelEditorHelper.selectedLevel = level;
+            tm.currentLevel = LevelEditorHelper.GetSelectedLevel();
+        }
+        GUILayout.EndScrollView();
+    }
 
     private void OnEnable()
     {
-        TileMap tileMap = target as TileMap;
-
-        if (tileMap.levelGrid == null)
-            return;
-
-        if (tileMap.levelGrid.tiles == null || tileMap.levelGrid.width * tileMap.levelGrid.height != tileMap.levelGrid.tiles.Length)
-        {
-            tileMap.levelGrid.tiles = new int[tileMap.levelGrid.width * tileMap.levelGrid.height];
-            for (Byte x = 0; x < tileMap.levelGrid.width; ++x)
-                for (Byte y = 0; y < tileMap.levelGrid.height; ++y)
-                    tileMap.levelGrid.tiles[x + tileMap.levelGrid.width * y] = -1;
-        }
-       
-        
+        this.LoadLevels();
+        (target as TileMap).currentLevel = LevelEditorHelper.GetSelectedLevel();
+        (target as TileMap).tileSet = LevelEditorHelper.tileCache;
+    }
+    private void LoadLevels()
+    {
+        LevelEditorHelper.LoadLevels();
     }
 
     
-    private void OnSceneGUI()
+
+    private void AddLevelGridInctance()
     {
-        Handles.BeginGUI();
-        {
-            GUIStyle style = new GUIStyle("box");
-            GUILayout.BeginArea(new Rect(10, 10, 200, 40), style);
-            {
+        LevelEditorHelper.AddLevelGridInctance((target as TileMap).currentLevel);
+    }
 
+    private void SaveLevelGridAssets()
+    {
+        LevelEditorHelper.SaveLevelGridAssets();
+    }
+    private void DeleteLevelGridInctance()
+    {
+        LevelEditorHelper.DeleteLevelGridInctance();
+    }
+}
+[EditorTool("Level Editor Tool", typeof(TileMap))]
+public class LevelEditorTool : EditorTool, IDrawSelectedHandles
+{
+    Vector3 fieldPosition;
+    int tileType;
 
-            }
-            GUILayout.EndArea();
-        }
-        Handles.EndGUI();
+    Texture2D Resize(Texture2D source, int newWidth, int newHeight)
+    {
+        source.filterMode = FilterMode.Point;
+        RenderTexture rt = RenderTexture.GetTemporary(newWidth, newHeight);
+        rt.filterMode = FilterMode.Point;
+        RenderTexture.active = rt;
+        Graphics.Blit(source, rt);
+        Texture2D nTex = new Texture2D(newWidth, newHeight);
+        nTex.ReadPixels(new Rect(0, 0, newWidth, newHeight), 0, 0);
+        nTex.Apply();
+        RenderTexture.active = null;
+        RenderTexture.ReleaseTemporary(rt);
+        return nTex;
+    }
 
-        Event e = Event.current;
-
-        if (e.type == EventType.Layout)
-            HandleUtility.AddDefaultControl(GUIUtility.GetControlID(GetHashCode(), FocusType.Passive));
-
-        bool control = e.modifiers == EventModifiers.Control;
-
-
+    public void OnDrawGizmosSelected()
+    {
         TileMap tileMap = target as TileMap;
+        var position = tileMap.transform.position - Vector3.one * 0.5f;
+        Rect rect = new Rect(position.x, position.y, tileMap.currentLevel.width, tileMap.currentLevel.height);
+
+        Gizmos.DrawGUITexture(rect, LevelEditorHelper.GetTileByType(TileMap.AliveType.Bat).image);
 
 
-        if (tileMap.levelGrid == null)
-            return;
+        for (byte x = 0; x < tileMap.currentLevel.width; ++x)
+            for (byte y = 0; y < tileMap.currentLevel.height; ++y)
+            {
+                int index = x + tileMap.currentLevel.width * y;
+                Vector3 pos = new Vector3(x, y, x * y) + tileMap.transform.position - Vector3.one * 0.5f;
+                var type = tileMap.currentLevel.tiles[index];
+                //Color tileColor = new Color(type, type, type, .7843137f);
+                if (type != TileMap.AliveType.None)
+                {
+                    Rect tileRect = new Rect(pos, Vector2.one);
+                    //Handles.DrawSolidRectangleWithOutline(tileRect, tileColor, Color.white);
+                    //Handles.Label(pos, Resize(LevelEditorHelper.GetTileByType(type).image, 40, 40));// DrawTexture3DSDF(LevelEditorHelper.GetTileByType(type).image);
+                    Gizmos.DrawGUITexture(tileRect, LevelEditorHelper.GetTileByType(type).image);
+                }
+            }
+    }
+    public void OnDrawHandles()
+    {
+        /*TileMap tileMap = target as TileMap;
+        var position = tileMap.transform.position - Vector3.one * 0.5f;
+        if (tileMap.currentLevel != null)
+        {
+            if (!tileMap.currentLevel.Valid())
+                return;
+            
+            Rect rect = new Rect(position.x, position.y, tileMap.currentLevel.width, tileMap.currentLevel.height);
+            Handles.DrawSolidRectangleWithOutline(rect, new Color(0.5f, 0.5f, 0.5f, .7843137f), Color.white);
 
+            for (byte x = 0; x < tileMap.currentLevel.width; ++x)
+                for (byte y = 0; y < tileMap.currentLevel.height; ++y)
+                {
+                    int index = x + tileMap.currentLevel.width * y;
+                    Vector3 pos = new Vector3(x, y, x*y) + tileMap.transform.position - Vector3.one * 0.5f;
+                    var type = tileMap.currentLevel.tiles[index];
+                    //Color tileColor = new Color(type, type, type, .7843137f);
+                    if (type != TileMap.AliveType.None)
+                    {
+                        Rect tileRect = new Rect(pos, Vector2.one);
+                        //Handles.DrawSolidRectangleWithOutline(tileRect, tileColor, Color.white);
+                        //Handles.Label(pos, Resize(LevelEditorHelper.GetTileByType(type).image, 40, 40));// DrawTexture3DSDF(LevelEditorHelper.GetTileByType(type).image);
+                        Gizmos.DrawGUITexture(new Rect(10, 10, 20, 20), LevelEditorHelper.GetTileByType(type).image);
+                    }
+                }
+        }
+        /*Event e = Event.current;
+
+        new Color(0.1176471f, 0.1019608f, .1960784f, .7843137f)
+
+        controlPressed = e.modifiers == EventModifiers.Control;
 
         Vector3 mousePosition = e.mousePosition;
         Ray ray = HandleUtility.GUIPointToWorldRay(mousePosition);
         mousePosition = ray.origin;
 
-        bool down = (e.type == EventType.MouseDrag || e.type == EventType.MouseDown);
-        bool downRight = (e.type == EventType.MouseDrag || e.type == EventType.MouseDown) && e.button == 1;
+        down = (e.type == EventType.MouseDrag || e.type == EventType.MouseDown);
 
-        for (Byte x = 0; x < tileMap.levelGrid.width; ++x)
-            for (Byte y = 0; y < tileMap.levelGrid.height; ++y)
+        for (byte x = 0; x < tileMap.levelGrid.width; ++x)
+            for (byte y = 0; y < tileMap.levelGrid.height; ++y)
             {
                 Vector3 pos = new Vector3(x, y) + tileMap.transform.position - Vector3.one * 0.5f;
                 Rect rect = new Rect(pos, Vector2.one);
-                bool contain = rect.Contains(mousePosition);
+                bool contain = ToolManager.IsActiveTool(this) && rect.Contains(mousePosition);
                 if (contain && down)
                 {
-
-                    tileMap.levelGrid.tiles[x + tileMap.levelGrid.width * y] = !control ? 1 : -1;
-                    //e.Use();
+                    tileMap.levelGrid.tiles[x + tileMap.levelGrid.width * y] = !controlPressed ? 1 : -1;
                 }
                 Color tileColor = tileMap.levelGrid.tiles[x + tileMap.levelGrid.width * y] == -1 ? Color.gray : new Color(0.1176471f, 0.1019608f, .1960784f, .7843137f);
                 Color color = contain ? Color.green : tileColor;
-              
-                Handles.DrawSolidRectangleWithOutline(rect, color, Color.white);
+
+                //Handles.RectangleHandleCap(,pos,Quaternion.identity,1f,);
+                //Handles.DrawSolidRectangleWithOutline(rect, color, Color.white);
             }
+        */
+    }
+
+    // The second "context" argument accepts an EditorWindow type.
+    [Shortcut("Activate TileMap Tool", typeof(SceneView), KeyCode.G)]
+    static void PlatformToolShortcut()
+    {
+        if (Selection.GetFiltered<TileMap>(SelectionMode.TopLevel).Length > 0)
+            ToolManager.SetActiveTool<LevelEditorTool>();
+        else
+            Debug.Log("No platforms selected!");
+    }
+
+    // Called when the active tool is set to this tool instance. Global tools are persisted by the ToolManager,
+    // so usually you would use OnEnable and OnDisable to manage native resources, and OnActivated/OnWillBeDeactivated
+    // to set up state. See also `EditorTools.{ activeToolChanged, activeToolChanged }` events.
+    public override void OnActivated()
+    {
+        //if (Event.current.type == EventType.Layout)
+        //    HandleUtility.AddDefaultControl(GUIUtility.GetControlID(GetHashCode(), FocusType.Passive));
+    }
+
+    // Called before the active tool is changed, or destroyed. The exception to this rule is if you have manually
+    // destroyed this tool (ex, calling `Destroy(this)` will skip the OnWillBeDeactivated invocation).
+    public override void OnWillBeDeactivated()
+    {
+        //if (Event.current.type == EventType.Layout)
+        //    HandleUtility.AddDefaultControl(GUIUtility.GetControlID(GetHashCode(), FocusType.Keyboard));
+    }
+
+    private void OnEnable()
+    {
+        LoadTiles();
+    }
+
+
+    public override void OnToolGUI(EditorWindow window)
+    {
+        if (!(window is SceneView sceneView))
+            return;
+        
+        if (!ToolManager.IsActiveTool(this))
+            return;
+
+        TileMap tileMap = target as TileMap;
+        Vector3 position = tileMap.transform.position - Vector3.one * 0.5f;
+
+        Handles.BeginGUI();
+        GUILayout.FlexibleSpace();
+        using (new GUILayout.HorizontalScope())
+        {
+            using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                DrawTilePanel();
+            }
+            GUILayout.FlexibleSpace();
+        }
+        Handles.EndGUI();
+
+
+
+        int controlID = GUIUtility.GetControlID(FocusType.Passive);
+        //Debug.Log("Control id for: " + i + " = " + controlID);
+
+
+        Vector3 mousePosition = Event.current.mousePosition;
+        Ray ray = HandleUtility.GUIPointToWorldRay(mousePosition);
+        mousePosition = ray.origin;
+
+        bool controlPressed = Event.current.modifiers == EventModifiers.Control;
+
+        switch (Event.current.GetTypeForControl(controlID))
+        {
+            case EventType.Layout:
+                if (tileMap.currentLevel == null)
+                    break;
+                Rect rect = new Rect(position.x, position.y, tileMap.currentLevel.width, tileMap.currentLevel.height);
+                var distance = (float)PointRectDist(mousePosition, rect);
+                if (rect.Contains(mousePosition))
+                {
+                    HandleUtility.AddControl(controlID, distance);
+                }
+                break;
+
+            case EventType.MouseUp:
+                if (GUIUtility.hotControl == controlID)
+                {
+                    GUIUtility.hotControl = 0;
+                    Event.current.Use();
+                }
+                break;
+            case EventType.MouseDown:
+
+                if (HandleUtility.nearestControl == controlID)
+                {
+                    GUIUtility.hotControl = controlID;
+                    Debug.Log("MouseDrag over " + controlID);
+                    CheckTile(mousePosition, tileMap, controlPressed);
+                    GUI.changed = true;
+                    Event.current.Use();
+                }
+                break;
+            case EventType.MouseDrag:
+
+                if (GUIUtility.hotControl == controlID)
+                {
+                    CheckTile(mousePosition, tileMap, controlPressed);
+                    GUI.changed = true;
+                    Event.current.Use();
+                }
+                break;
+        }
     }
 
     
+    private void DrawTilePanel()
+    {
+        using (new GUILayout.VerticalScope())
+        {
+            using (new GUILayout.HorizontalScope())
+            {
+                LevelEditorHelper.selectedTile = GUILayout.SelectionGrid(LevelEditorHelper.selectedTile, LevelEditorHelper.tiles.Select(l => l.image).ToArray(), 5, EditorStyles.toolbarButton, GUILayout.Width(200));
+                (target as TileMap).currentTile = LevelEditorHelper.GetSelectedTile();
+            }
+            using (new GUILayout.HorizontalScope())
+            {
+                if(LevelEditorHelper.tiles.Count > 0 && GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20)))
+                {
+                    DeleteTileTypeInctance();
+                }
+                if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
+                {
+                    AddTileTypeInctance();
+                }
+                if (LevelEditorHelper.tilesDirty && GUILayout.Button("Save", GUILayout.Width(50), GUILayout.Height(20)))
+                {
+                    SaveTileAssets();
+                }
+            }
+            //GUILayout.FlexibleSpace();
+        }
+    }
+
+    private void AddTileTypeInctance()
+    {
+        LevelEditorHelper.AddNewTile();
+    }
+
+    private void SaveTileAssets()
+    {
+        LevelEditorHelper.SaveTileAssets();
+    }
+    private void DeleteTileTypeInctance()
+    {
+        LevelEditorHelper.DeleteTileTypeInctance();
+    }
+
+
+
+    private void LoadTiles()
+    {
+        LevelEditorHelper.LoadTiles();
+    }
+
+    private void OnLevelPathChanged(object sender, FileSystemEventArgs e)
+    {
+    }
+
+    private void OnTilePathChanged(object sender, FileSystemEventArgs e)
+    {
+        LoadTiles();
+    }
+
+    private void CheckTile(Vector3 mousePosition, TileMap tileMap, bool erase = false)
+    {
+        if (tileMap.currentLevel == null)
+            return;
+
+        Vector2 pos = mousePosition - tileMap.transform.position;
+        int x = (int)math.round(pos.x);
+        int y = (int)math.round(pos.y);
+
+        var tile = LevelEditorHelper.GetSelectedTile();
+        if (tile != null)
+        {
+            tileMap.currentLevel.tiles[x + tileMap.currentLevel.width * y] = erase ? TileMap.AliveType.None : tile.id;
+        }
+        
+        //Rect rect = new Rect(pos, Vector2.one);
+        //bool contain = rect.Contains(mousePosition);
+        Debug.Log("MouseMove over " + x + " " + y);
+    }
+    private double PointRectDist(Vector3 p, Rect rect)
+    {
+        var cx = math.max(math.min(p.x, rect.x + rect.width), rect.x);
+        var cy = math.max(math.min(p.y, rect.y + rect.height), rect.y);
+        return math.sqrt((p.x - cx) * (p.x - cx) + (p.y - cy) * (p.y - cy));
+    }
 }

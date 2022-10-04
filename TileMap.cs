@@ -3,9 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 using UnityEngine;
+using Unity.Mathematics;
 
 public class TileMap : MonoBehaviour
 {
+
+#if UNITY_EDITOR
+    public TileType currentTile;
+    public LevelGrid currentLevel;
+    public Dictionary<TileMap.AliveType, TileType> tileSet;
+#endif
     public Byte width;
     public Byte height;
     public GameObject prefab;
@@ -41,22 +48,23 @@ public class TileMap : MonoBehaviour
         public Byte y;
     }
 
-   public enum AliveType
+    public enum AliveType
     {
         Bat = 0,
         Cat = 1,
         Ghost = 2,
         Pumpkin = 3,
-        Zombie = 4
-    }
-    public enum SpecialType
-    {
+        Zombie = 4,
+
         Rocket_V = 10,
         Rocket_H = 11,
         Caudron = 12,
         Poison_Green = 13,
         Poison_Blue = 14,
-        Poison_Black = 15
+        Poison_Black = 15,
+
+        None = 253,
+        Random = 254
     }
 
     public enum SpecialActivatedType
@@ -69,24 +77,25 @@ public class TileMap : MonoBehaviour
 
     void Awake()
     {
-        
+
     }
 
     private void Start()
     {
         SoundManager soundManager = FindObjectOfType<SoundManager>();
-        if (levelGrid != null)
-        {
-            width = levelGrid.width;
-            height = levelGrid.height;
-        }
+        if (levelGrid == null)
+            return;
+        width = levelGrid.width;
+        height = levelGrid.height;
+
         tiles = new Tile[width, height];
 
         List<int> types = Enumerable.Range(0, ObjectPool.Instance.alive.sprites.Length).Select((index) => index).ToList();
         for (Byte i = 0; i < width; i++)
             for (Byte j = 0; j < height; j++)
             {
-                if (levelGrid != null && levelGrid.tiles[i + j * width] == -1)
+                var tileType = levelGrid.tiles[i + j * width];
+                if (tileType == AliveType.None)
                     continue;
 
                 var position = new Vector3(i, j, 0) + transform.position;
@@ -96,7 +105,7 @@ public class TileMap : MonoBehaviour
                 tile.contentDeleted += OnTileDeleted;
                 tile.contentDeleted += soundManager.OnTileDeleted;
                 tile.upIsEmpty += OnUpIsEmpty;
-                InitContent(i, j, types);
+                InitContent(i, j, tileType);
             }
     }
 
@@ -105,7 +114,7 @@ public class TileMap : MonoBehaviour
         tiles[x, y] = tile;
 
         int x2 = x - 1;
-        
+
         if (x2 >= 0 && tiles[x2, y] != null)
         {
             tile.left = tiles[x2, y];
@@ -148,27 +157,31 @@ public class TileMap : MonoBehaviour
         return GetTile(position).CreateContentSpecial(index);
 
     }
-    private void InitContent(Byte x, Byte y, List<int> types)
+    private void InitContent(Byte x, Byte y, TileMap.AliveType type)
     {
         Cell position = new Cell(x, y);
-        List<int> allowedTypes = new List<int>(types);
-        if (x > 1)
+        SByte index = (SByte)type;
+        if (type == AliveType.Random)
         {
-            SByte back = GetType(new Cell((Byte)(x - 1), y));
-            if (back == GetType(new Cell((Byte)(x - 2), y)))
+            List<int> allowedTypes = Enumerable.Range(0, ObjectPool.Instance.alive.sprites.Length).Select((index) => index).ToList();
+            if (x > 1)
             {
-                allowedTypes.Remove(back);
+                SByte back = GetType(new Cell((Byte)(x - 1), y));
+                if (back == GetType(new Cell((Byte)(x - 2), y)))
+                {
+                    allowedTypes.Remove(back);
+                }
             }
-        }
-        if (y > 1)
-        {
-            var down = GetType(new Cell(x, (Byte)(y - 1)));
-            if (down == GetType(new Cell(x, (Byte)(y - 2))))
+            if (y > 1)
             {
-                allowedTypes.Remove(down);
+                var down = GetType(new Cell(x, (Byte)(y - 1)));
+                if (down == GetType(new Cell(x, (Byte)(y - 2))))
+                {
+                    allowedTypes.Remove(down);
+                }
             }
+            index = (SByte)allowedTypes[UnityEngine.Random.Range(0, allowedTypes.Count)];
         }
-        SByte index = (SByte)allowedTypes[UnityEngine.Random.Range(0, allowedTypes.Count)];
         const bool dropped = false;
         GetTile(position).CreateContent(index, dropped);
     }
@@ -215,7 +228,7 @@ public class TileMap : MonoBehaviour
             dead.body.gravityScale = 0;
             dead.body.velocity = toGoal * 2.5f; //, ForceMode2D.Impulse );
         }
-        else if (tileType < (SByte)TileMap.SpecialType.Rocket_V)
+        else if (tileType < (SByte)TileMap.AliveType.Rocket_V)
         {
             ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(tileType);
             dead.obj.transform.position = position;
@@ -225,7 +238,7 @@ public class TileMap : MonoBehaviour
             dead.body.velocity = new Vector2(x, y) * 5; //, ForceMode2D.Impulse);
             dead.anim.SetTrigger("Dead");
         }
-        else if (tileType == (SByte)TileMap.SpecialType.Rocket_V)
+        else if (tileType == (SByte)TileMap.AliveType.Rocket_V)
         {
             ObjectPool.PooledObject up = ObjectPool.Instance.GetSpecialActivated((SByte)TileMap.SpecialActivatedType.Rocket_UP);
             ObjectPool.PooledObject down = ObjectPool.Instance.GetSpecialActivated((SByte)TileMap.SpecialActivatedType.Rocket_DN);
@@ -237,7 +250,7 @@ public class TileMap : MonoBehaviour
             down.body.gravityScale = 0;
             down.body.velocity = Vector2.down * rocketSpeed;
         }
-        else if (tileType == (SByte)TileMap.SpecialType.Rocket_H)
+        else if (tileType == (SByte)TileMap.AliveType.Rocket_H)
         {
             ObjectPool.PooledObject left = ObjectPool.Instance.GetSpecialActivated((SByte)TileMap.SpecialActivatedType.Rocket_LT);
             ObjectPool.PooledObject right = ObjectPool.Instance.GetSpecialActivated((SByte)TileMap.SpecialActivatedType.Rocket_RT);
@@ -250,4 +263,31 @@ public class TileMap : MonoBehaviour
         }
 
     }
+
+
+#if UNITY_EDITOR
+    public void OnDrawGizmosSelected()
+    {
+        var position = transform.position - Vector3.one * 0.5f;
+        Rect rect = new Rect(position.x, position.y, currentLevel.width, currentLevel.height);
+
+        for (byte i = 0; i < currentLevel.width; ++i)
+            for (byte j = 0; j < currentLevel.height; ++j)
+            {
+                int index = i + currentLevel.width * j;
+                Vector3 pos = new Vector3(i, j) + transform.position;
+                int x = (int)math.round(pos.x);
+                int y = (int)math.round(pos.y);
+
+                var type = currentLevel.tiles[index];
+                Gizmos.color = new Color(0.1176471f, (i+j) % 2 == 0 ? 0.1019608f : 0.1419608f, .1960784f, .7843137f);
+                Gizmos.DrawCube(pos, Vector3.one);
+                if (type != TileMap.AliveType.None)
+                {
+                    Gizmos.DrawIcon(pos, tileSet[type].name);
+                }
+            }
+    }
+
+#endif
 }

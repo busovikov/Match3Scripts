@@ -6,7 +6,17 @@ public class Border : MonoBehaviour
 {
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        collision.gameObject.SetActive(false);
         
+        
+    }
+
+    private void OnCollisionExit2D(Collision2D collision)
+    {
+        
+    }
+
+    private void OnTriggerExit2D(Collider2D collision)
+    {
+        collision.gameObject.SetActive(false);
     }
 }

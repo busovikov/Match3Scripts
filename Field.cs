@@ -291,26 +291,26 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
     private bool ActivateIfSpecial(TileMap.Cell cell)
     {
         SByte type = tileMap.GetTile(cell).tileType;
-        if (type == (SByte)TileMap.SpecialType.Rocket_V)
+        if (type == (SByte)TileMap.AliveType.Rocket_V)
         {
             var item = tileMap.GetTile(cell);
             item.DestroyContent();
         }
-        else if (type == (SByte)TileMap.SpecialType.Rocket_H)
+        else if (type == (SByte)TileMap.AliveType.Rocket_H)
         {
             var item = tileMap.GetTile(cell);
             item.DestroyContent();
         }
-        else if (type == (SByte)TileMap.SpecialType.Caudron)
+        else if (type == (SByte)TileMap.AliveType.Caudron)
         {
         }
-        else if (type == (SByte)TileMap.SpecialType.Poison_Green)
+        else if (type == (SByte)TileMap.AliveType.Poison_Green)
         {
         }
-        else if (type == (SByte)TileMap.SpecialType.Poison_Blue)
+        else if (type == (SByte)TileMap.AliveType.Poison_Blue)
         {
         }
-        else if (type == (SByte)TileMap.SpecialType.Poison_Black)
+        else if (type == (SByte)TileMap.AliveType.Poison_Black)
         {
         }
         else
