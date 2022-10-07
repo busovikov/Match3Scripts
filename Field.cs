@@ -425,7 +425,7 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
                 {
                     specialCount.Add(specialPos, 0);
                 }
-                if (interval.count == 4 && !interval.crossing && interval.mOrientation == Match.Interval.Orientation.Vertical)
+                if (interval.count == 4 && !interval.crossing && interval.mOrientation == Match.Interval.Orientation.Horizontal)
                 {
                     specialCount[specialPos] += 3; 
                 }

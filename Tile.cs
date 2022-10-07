@@ -78,7 +78,7 @@ public class Tile : MonoBehaviour
     public IEnumerator SyncContents()
     {
         float elapsed = 0f;
-        float duration = 1.2f;
+        float duration = 0.35f;
         GameObject[] contents = (GameObject[])toEngulf.Clone();
         toEngulf = null;
         Vector3[] InitialOffset = new Vector3[contents.Length];
@@ -90,6 +90,9 @@ public class Tile : MonoBehaviour
                 InitialOffset[i] = contents[i].transform.position;
             }
         }
+
+        //var renderer = content.GetComponent<SpriteRenderer>();
+        //renderer.sortingOrder++;
 
         while (elapsed < duration)
         {
@@ -119,6 +122,7 @@ public class Tile : MonoBehaviour
         }
         engulfed?.Invoke();
         engulfed = null;
+        //renderer.sortingOrder--;
     }
 
     public bool ExchangeWith(Tile other, Action onExchanged)
@@ -272,24 +276,20 @@ public class Tile : MonoBehaviour
         ObjectPool.PooledObject pooledObj = ObjectPool.Instance.GetSpecial(type);
         pooledObj.obj.transform.position = container.transform.position;
         content = pooledObj.obj;
+        content.GetComponent<SpriteRenderer>().sortingOrder++;
         content.transform.SetParent(container.transform);
         tileType = (SByte)(type + 10);
-        //animator.enabled = true;
         animator.Play("Tile_Special", -1, 0);
-        Debug.Log("animatio start " + Time.realtimeSinceStartup.ToString());
         return StartCoroutine(WaitForAnimationDone());
     }
 
     public IEnumerator WaitForAnimationDone()
     {
-        Debug.Log("animation stop " + animator.GetCurrentAnimatorStateInfo(0).normalizedTime.ToString());
         while (animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1)
         {
-            Debug.Log("animation " + animator.GetCurrentAnimatorStateInfo(0).normalizedTime.ToString());
            yield return null;
         }
-        Debug.Log("animation stop " + Time.realtimeSinceStartup.ToString());
-        //animator.enabled = true;
+        content.GetComponent<SpriteRenderer>().sortingOrder--;
     }
 
 }
