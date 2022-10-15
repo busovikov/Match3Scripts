@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7aa463983ebcef8428a1ac373a133b29, type: 3}
-  m_Name: Rocket_V
-  m_EditorClassIdentifier: 
-  id: 10
-  image: {fileID: 2800000, guid: fee5f8eef3de2b04294431530a3f0ab0, type: 3}
+  m_Script: {fileID: 0}
+  m_Name: New Background Type
+  m_EditorClassIdentifier: Assembly-CSharp::BackgroundType
+  image: {fileID: 0}
   dirty: 0
+  backgroundID: 0

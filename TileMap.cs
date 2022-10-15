@@ -11,7 +11,7 @@ public class TileMap : MonoBehaviour
 #if UNITY_EDITOR
     public TileType currentTile;
     public LevelGrid currentLevel;
-    public Dictionary<TileMap.AliveType, TileType> tileSet;
+    public Dictionary<System.Enum, TileType> gizmos;
 #endif
     public Byte width;
     public Byte height;
@@ -48,14 +48,34 @@ public class TileMap : MonoBehaviour
         public Byte y;
     }
 
-    public enum AliveType
+    public enum BlockedTileType
     {
-        Bat = 0,
-        Cat = 1,
-        Ghost = 2,
-        Pumpkin = 3,
-        Zombie = 4,
+        Unblocked,
+        Gravestone,
+        CartonBox,
+        WoodenBox,
+        Chain,
+        Web,
+        Ice,
+        Snowdrift
+    }
 
+    public enum BackgroundTileType
+    { 
+        NoBackground,
+        Carpet
+    }
+
+    public enum BasicTileType
+    {
+        Bat,
+        Cat,
+        Ghost,
+        Pumpkin,
+        Zombie,
+        TypeSize,
+
+        SpetialShift = 10,
         Rocket_V = 10,
         Rocket_H = 11,
         Caudron = 12,
@@ -95,13 +115,18 @@ public class TileMap : MonoBehaviour
             for (Byte j = 0; j < height; j++)
             {
                 var tileType = levelGrid.tiles[i + j * width];
-                if (tileType == AliveType.None)
+                if (tileType.Main() == BasicTileType.None)
                     continue;
 
                 var position = new Vector3(i, j, 0) + transform.position;
                 Tile tile = GameObject.Instantiate(prefab, position, Quaternion.identity, transform).GetComponent<Tile>();
                 tile.gameObject.name = position.ToString();
                 Bind(tile, i, j);
+
+                tile.backgroundInteracted += OnBackgroundInteract;
+
+                tile.blockedInteracted += OnBlockedInteract;
+
                 tile.contentDeleted += OnTileDeleted;
                 tile.contentDeleted += soundManager.OnTileDeleted;
                 tile.upIsEmpty += OnUpIsEmpty;
@@ -131,9 +156,19 @@ public class TileMap : MonoBehaviour
             }
         }
     }
-    void OnTileDeleted(Tile sender, SByte type)
+    void OnTileDeleted(Tile sender, BasicTileType type)
     {
         SpawnDead(type, sender.transform.position);
+    }
+
+    void OnBlockedInteract(Tile sender, BlockedTileType type)
+    {
+        Debug.Log("Blocked: " + type.ToString());
+    }
+
+    void OnBackgroundInteract(Tile sender, BackgroundTileType type)
+    {
+        Debug.Log("BackGround: " + type.ToString());
     }
 
     void OnUpIsEmpty(Tile sender)
@@ -143,30 +178,30 @@ public class TileMap : MonoBehaviour
     }
     public Coroutine Create(Tile tile, Vector2 offset, bool dropped = false)
     {
-        SByte index = (SByte)UnityEngine.Random.Range(0, ObjectPool.Instance.alive.sprites.Length);
+        var index = (BasicTileType)UnityEngine.Random.Range(0, (int)BasicTileType.TypeSize);
         return tile.CreateContent(index, dropped, offset);
     }
     public Coroutine Create(Cell position, Vector2 offset, bool dropped = false)
     {
-        SByte index = (SByte)UnityEngine.Random.Range(0, ObjectPool.Instance.alive.sprites.Length);
+        var index = (BasicTileType)UnityEngine.Random.Range(0, (int)BasicTileType.TypeSize);
         return GetTile(position).CreateContent(index, dropped, offset);
     }
 
-    public Coroutine CreateSpecial(Cell position, SByte index)
+    public Coroutine CreateSpecial(Cell position, BasicTileType index)
     {
         return GetTile(position).CreateContentSpecial(index);
 
     }
-    private void InitContent(Byte x, Byte y, TileMap.AliveType type)
+    private void InitContent(Byte x, Byte y, LevelGrid.Tile t)
     {
         Cell position = new Cell(x, y);
-        SByte index = (SByte)type;
-        if (type == AliveType.Random)
+        var index = t.Main();
+        if (index == BasicTileType.Random)
         {
-            List<int> allowedTypes = Enumerable.Range(0, ObjectPool.Instance.alive.sprites.Length).Select((index) => index).ToList();
+            List<BasicTileType> allowedTypes = Enumerable.Range(0, (int)BasicTileType.TypeSize).Select((index) => (BasicTileType)index).ToList<BasicTileType>();
             if (x > 1)
             {
-                SByte back = GetType(new Cell((Byte)(x - 1), y));
+                var back = GetType(new Cell((Byte)(x - 1), y));
                 if (back == GetType(new Cell((Byte)(x - 2), y)))
                 {
                     allowedTypes.Remove(back);
@@ -180,7 +215,7 @@ public class TileMap : MonoBehaviour
                     allowedTypes.Remove(down);
                 }
             }
-            index = (SByte)allowedTypes[UnityEngine.Random.Range(0, allowedTypes.Count)];
+            index = allowedTypes[UnityEngine.Random.Range(0, allowedTypes.Count)];
         }
         const bool dropped = false;
         GetTile(position).CreateContent(index, dropped);
@@ -194,16 +229,16 @@ public class TileMap : MonoBehaviour
     {
         return tiles[x, y];
     }
-    public SByte GetType(Cell arrayPosition)
+    public BasicTileType GetType(Cell arrayPosition)
     {
         return GetType(arrayPosition.x, arrayPosition.y);
     }
 
-    public SByte GetType(Byte x, Byte y)
+    public BasicTileType GetType(Byte x, Byte y)
     {
         if (!IsValid(x, y))
-            return -1;
-        return tiles[x, y].tileType;
+            return BasicTileType.None;
+        return tiles[x, y].tileType.Main();
     }
     public bool IsValid(Cell arrayPosition)
     {
@@ -216,21 +251,21 @@ public class TileMap : MonoBehaviour
         return withInBoundaries && tiles != null && tiles[x, y] != null && !tiles[x, y].Invalid && tiles[x, y].IsSet();
     }
 
-    public void SpawnDead(int tileType, Vector2 position)
+    public void SpawnDead(BasicTileType tileType, Vector2 position)
     {
         const float rocketSpeed = 15f;
         if (tileType == Goals.type)
         {
-            ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(tileType);
+            ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead((int)tileType);
             dead.obj.transform.position = position;
             var toGoal = (Vector2)(goal.position) - position;
             dead.anim.SetTrigger("Dead");
             dead.body.gravityScale = 0;
             dead.body.velocity = toGoal * 2.5f; //, ForceMode2D.Impulse );
         }
-        else if (tileType < (SByte)TileMap.AliveType.Rocket_V)
+        else if (tileType < BasicTileType.Rocket_V)
         {
-            ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(tileType);
+            ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead((int)tileType);
             dead.obj.transform.position = position;
             var x = UnityEngine.Random.Range(-1f, 1f);
             var y = UnityEngine.Random.Range(0.1f, 1f);
@@ -238,10 +273,10 @@ public class TileMap : MonoBehaviour
             dead.body.velocity = new Vector2(x, y) * 5; //, ForceMode2D.Impulse);
             dead.anim.SetTrigger("Dead");
         }
-        else if (tileType == (SByte)TileMap.AliveType.Rocket_V)
+        else if (tileType == BasicTileType.Rocket_V)
         {
-            ObjectPool.PooledObject up = ObjectPool.Instance.GetSpecialActivated((SByte)TileMap.SpecialActivatedType.Rocket_UP);
-            ObjectPool.PooledObject down = ObjectPool.Instance.GetSpecialActivated((SByte)TileMap.SpecialActivatedType.Rocket_DN);
+            ObjectPool.PooledObject up = ObjectPool.Instance.GetSpecialActivated((int)SpecialActivatedType.Rocket_UP);
+            ObjectPool.PooledObject down = ObjectPool.Instance.GetSpecialActivated((int)SpecialActivatedType.Rocket_DN);
 
             up.obj.transform.position = position;
             up.body.gravityScale = 0;
@@ -250,10 +285,10 @@ public class TileMap : MonoBehaviour
             down.body.gravityScale = 0;
             down.body.velocity = Vector2.down * rocketSpeed;
         }
-        else if (tileType == (SByte)TileMap.AliveType.Rocket_H)
+        else if (tileType == BasicTileType.Rocket_H)
         {
-            ObjectPool.PooledObject left = ObjectPool.Instance.GetSpecialActivated((SByte)TileMap.SpecialActivatedType.Rocket_LT);
-            ObjectPool.PooledObject right = ObjectPool.Instance.GetSpecialActivated((SByte)TileMap.SpecialActivatedType.Rocket_RT);
+            ObjectPool.PooledObject left = ObjectPool.Instance.GetSpecialActivated((int)SpecialActivatedType.Rocket_LT);
+            ObjectPool.PooledObject right = ObjectPool.Instance.GetSpecialActivated((int)SpecialActivatedType.Rocket_RT);
             left.obj.transform.position = position;
             left.body.gravityScale = 0;
             left.body.velocity = Vector2.left * rocketSpeed;
@@ -268,6 +303,9 @@ public class TileMap : MonoBehaviour
 #if UNITY_EDITOR
     public void OnDrawGizmosSelected()
     {
+        if (currentLevel.tiles == null || gizmos == null)
+            return;
+        
         var position = transform.position - Vector3.one * 0.5f;
         Rect rect = new Rect(position.x, position.y, currentLevel.width, currentLevel.height);
 
@@ -279,12 +317,22 @@ public class TileMap : MonoBehaviour
                 int x = (int)math.round(pos.x);
                 int y = (int)math.round(pos.y);
 
-                var type = currentLevel.tiles[index];
-                Gizmos.color = new Color(0.1176471f, (i+j) % 2 == 0 ? 0.1019608f : 0.1419608f, .1960784f, .7843137f);
+                Gizmos.color = new Color(0.1176471f, (i + j) % 2 == 0 ? 0.1019608f : 0.1419608f, .1960784f, .7843137f);
                 Gizmos.DrawCube(pos, Vector3.one);
-                if (type != TileMap.AliveType.None)
+
+                System.Enum[] enums = new System.Enum[3];
+
+                enums[0] = currentLevel.tiles[index].Background();
+                enums[1] = currentLevel.tiles[index].Main();
+                enums[2] = currentLevel.tiles[index].Blocked();
+
+                foreach (var e in enums)
                 {
-                    Gizmos.DrawIcon(pos, tileSet[type].name);
+                    TileType tile;
+                    if (gizmos.TryGetValue(e, out tile))
+                    {
+                        Gizmos.DrawIcon(pos, tile.name);
+                    }
                 }
             }
     }

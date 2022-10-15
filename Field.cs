@@ -290,27 +290,27 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
     }
     private bool ActivateIfSpecial(TileMap.Cell cell)
     {
-        SByte type = tileMap.GetTile(cell).tileType;
-        if (type == (SByte)TileMap.AliveType.Rocket_V)
+        var type = tileMap.GetTile(cell).tileType.Main();
+        if (type == TileMap.BasicTileType.Rocket_V)
         {
             var item = tileMap.GetTile(cell);
             item.DestroyContent();
         }
-        else if (type == (SByte)TileMap.AliveType.Rocket_H)
+        else if (type == TileMap.BasicTileType.Rocket_H)
         {
             var item = tileMap.GetTile(cell);
             item.DestroyContent();
         }
-        else if (type == (SByte)TileMap.AliveType.Caudron)
+        else if (type == TileMap.BasicTileType.Caudron)
         {
         }
-        else if (type == (SByte)TileMap.AliveType.Poison_Green)
+        else if (type == TileMap.BasicTileType.Poison_Green)
         {
         }
-        else if (type == (SByte)TileMap.AliveType.Poison_Blue)
+        else if (type == TileMap.BasicTileType.Poison_Blue)
         {
         }
-        else if (type == (SByte)TileMap.AliveType.Poison_Black)
+        else if (type == TileMap.BasicTileType.Poison_Black)
         {
         }
         else
@@ -407,7 +407,7 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
                 Byte y = interval.mOrientation == Match.Interval.Orientation.Horizontal ? interval.cell.y : (Byte)(interval.cell.y + i);
                 Tile item = tileMap.GetTile(x, y);
 
-                if (item.tileType == -1)
+                if (item.tileType.Main() == TileMap.BasicTileType.None)
                 {
                     continue;
                 }
@@ -442,7 +442,7 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
         List<Coroutine> engulfAll = new List<Coroutine>();
         foreach (var specialPair in specialCount)
         {
-            engulfAll.Add( tileMap.CreateSpecial(specialPair.Key, (SByte)(specialPair.Value - 3))); // can not go lower than 0
+            engulfAll.Add( tileMap.CreateSpecial(specialPair.Key, (TileMap.BasicTileType)(specialPair.Value - 3))); // can not go lower than 0
         }
         foreach (Coroutine dropTask in engulfAll)
         {

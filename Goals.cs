@@ -12,7 +12,7 @@ public class Goals : MonoBehaviour
     public Text label;
 
     [HideInInspector]
-    public static int type;
+    public static TileMap.BasicTileType type;
     private Animator animator;
     private LevelLoader.GameMode gameMode;
     private int goal = 9;
@@ -22,8 +22,9 @@ public class Goals : MonoBehaviour
 
     private void Awake()
     {
-        type = UnityEngine.Random.Range(0, images.Length);
-        GetComponent<Image>().sprite = images[type];
+        var t = UnityEngine.Random.Range(0, (int)TileMap.BasicTileType.TypeSize);
+        type = (TileMap.BasicTileType)t;
+        GetComponent<Image>().sprite = images[t];
         animator = GetComponent<Animator>();
     }
 

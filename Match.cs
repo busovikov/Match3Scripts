@@ -25,7 +25,7 @@ public class Match
             crossingCell = new TileMap.Cell();
             crossing = false;
             count = 0;
-            type = -1;
+            type = TileMap.BasicTileType.None;
         }
 
         public Interval Clone()
@@ -84,7 +84,7 @@ public class Match
         public TileMap.Cell crossingCell;
         public bool crossing;
         public Byte count;
-        public SByte type;
+        public TileMap.BasicTileType type;
     }
 
     public struct Crossing
@@ -129,12 +129,12 @@ public class Match
                 Vector2 position = new Vector2(x, y);
                 TileMap.Cell tmp;
                 TileMap.Cell.ToCell(position, out tmp);
-                int type = tiles.GetType(tmp);
+                var type = tiles.GetType(tmp);
 
                 Vector2 next = new Vector2(x, y + 1);
                 if (TileMap.Cell.ToCell(next, out tmp))
                 {
-                    int nextType = tiles.GetType(tmp);
+                    var nextType = tiles.GetType(tmp);
                     if (type == nextType && (CheckPotentialOnEdge(position, Vector2.down, type) || CheckPotentialOnEdge(next, Vector2.up, type)))
                     {
                         return true;
@@ -143,7 +143,7 @@ public class Match
                 next = new Vector2(x, y + 2);
                 if (TileMap.Cell.ToCell(next, out tmp))
                 {
-                    int nextType = tiles.GetType(tmp);
+                    var nextType = tiles.GetType(tmp);
                     if (type == nextType && CheckPotentialBetween(position, Vector2.up, type))
                     {
                         return true;
@@ -152,7 +152,7 @@ public class Match
                 next = new Vector2(x + 1, y);
                 if (TileMap.Cell.ToCell(next, out tmp))
                 {
-                    int nextType = tiles.GetType(tmp);
+                    var nextType = tiles.GetType(tmp);
                     if (type == nextType && (CheckPotentialOnEdge(position, Vector2.left, type) || CheckPotentialOnEdge(next, Vector2.right, type)))
                     {
                         return true;
@@ -161,7 +161,7 @@ public class Match
                 next = new Vector2(x + 2, y);
                 if (TileMap.Cell.ToCell(next, out tmp))
                 {
-                    int nextType = tiles.GetType(tmp);
+                    var nextType = tiles.GetType(tmp);
                     if (type == nextType && CheckPotentialBetween(position, Vector2.right, type))
                     {
                         return true;
@@ -170,7 +170,7 @@ public class Match
             }
         return false;
     }
-    private bool CheckPotentialOnEdge(Vector2 position, Vector2 direction, int type)
+    private bool CheckPotentialOnEdge(Vector2 position, Vector2 direction, TileMap.BasicTileType type)
     {
         var forward = position + direction;
         var right = new Vector2(direction.y, direction.x);
@@ -196,7 +196,7 @@ public class Match
         return result;
     }
 
-    private bool CheckPotentialBetween(Vector2 position, Vector2 direction, int type)
+    private bool CheckPotentialBetween(Vector2 position, Vector2 direction, TileMap.BasicTileType type)
     {
         var forward = position + direction;
         var right = new Vector2(direction.y, direction.x);
@@ -248,7 +248,7 @@ public class Match
 
     private void StackOn(Byte x, Byte y, ref Interval interval, DestructableTiles destructableTiles)
     {
-        SByte type = tiles.GetType(x, y);
+        var type = tiles.GetType(x, y);
         if (interval.count > 0 && interval.type != type)
         {
             Sink(ref interval, destructableTiles);

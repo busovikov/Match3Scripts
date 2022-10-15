@@ -97,7 +97,7 @@ public class SoundManager : MonoBehaviour
         ShowVolumeSlider();
     }
 
-    public void OnTileDeleted(Tile sender, SByte type)
+    public void OnTileDeleted(Tile sender, TileMap.BasicTileType type)
     {
         PlayPop();
     }

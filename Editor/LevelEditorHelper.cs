@@ -25,15 +25,26 @@ namespace Assets.Scripts.Editor
         #region TileTypeManagment
         public const string TilesPath = "Assets/Scripts/ScriptableObjects/Tiles";
         public static bool tilesDirty = false;
-        public static int selectedTile;
-        public static List<TileType> tiles;
+        public static Dictionary<System.Type, int> selectedTile;
+        public static Dictionary<System.Type,List<TileType>> tiles;
         public static List<TileType> tilesToRemove;
         public static Rect tileWindowRect;
 
-        public static Dictionary<TileMap.AliveType, TileType> tileCache;
+        public static Dictionary<System.Enum, TileType> gizmos;
         #endregion
 
-
+        public static bool SetSelectedTile(System.Type t, int value)
+        {
+            if (selectedTile[t] != value)
+            {
+                foreach(var index in selectedTile.Keys.ToList())
+                {
+                    selectedTile[index] = t == index ? value : -1;
+                }
+                return true;
+            }
+            return false;
+        }
         public static string GetUniqueName(IEnumerable<ScriptableObject> container, string name)
         {
             int n = 1;
@@ -50,35 +61,34 @@ namespace Assets.Scripts.Editor
         {
             int n = 1;
             StringBuilder sb = new StringBuilder(name, 50);
-            while (tiles.Select(t => t.name).Contains(sb.ToString()))
+            //while (tiles.Select(t => t.name).Contains(sb.ToString()))
             {
                 sb.Clear();
                 sb.AppendFormat("{0} ({1})", name, n++);
             }
             return sb.ToString();
         }
-        internal static TileType GetSelectedTile()
+        internal static TileType GetSelectedTile(System.Type t)
         {
-            if (selectedTile >= tiles.Count())
+            if (selectedTile == null || !selectedTile.ContainsKey(t) || tiles == null || !tiles.ContainsKey(t) || selectedTile[t] >= tiles[t].Count())
             {
                 LoadTiles();
             }
-            return tiles[selectedTile];
+            return tiles[t][selectedTile[t]];
         }
 
-        internal static TileType GetTileByType(TileMap.AliveType index)
+        internal static void AddNewTile(System.Type t)
         {
-            return tileCache[index];
-        }
-
-        internal static void AddNewTile()
-        {
-            TileType newTile = ScriptableObject.CreateInstance<TileType>();
+            if (!tiles.ContainsKey(t) || !selectedTile.ContainsKey(t))
+            {
+                return;
+            }
+            TileType newTile = ScriptableObject.CreateInstance(t.Name) as TileType;
             newTile.name = GetUniqueName("New Tile");
             newTile.image = new Texture2D(40, 40);
 
-            selectedTile = tiles.Count;
-            tiles.Add(newTile);
+            selectedTile[t] = tiles[t].Count;
+            tiles[t].Add(newTile);
             tilesDirty = true;
         }
 
@@ -89,16 +99,22 @@ namespace Assets.Scripts.Editor
             return null;
         }
 
-        internal static void SaveTileAssets()
+        internal static void SaveTileAssets(System.Type t)
         {
+            
             foreach (var asset in tilesToRemove)
             {
                 var p = AssetDatabase.GetAssetPath(asset);
                 AssetDatabase.DeleteAsset(p);
             }
 
+            if (!tiles.ContainsKey(t))
+            {
+                return;
+            }
+
             StringBuilder sb = new StringBuilder(TilesPath, 50);
-            foreach (var asset in tiles)
+            foreach (var asset in tiles[t])
             {
                 var p = AssetDatabase.GetAssetPath(asset);
                 if (p == "")
@@ -125,20 +141,39 @@ namespace Assets.Scripts.Editor
             tilesDirty = false;
         }
 
-        internal static void DeleteTileTypeInctance()
+        internal static void ResetGrid(LevelGrid currentLevel)
         {
-            if (tiles.Count > 0)
+            currentLevel.tiles = new LevelGrid.Tile[currentLevel.width * currentLevel.height];
+            LevelGrid.Tile val = new LevelGrid.Tile();
+            val.SetMain (TileMap.BasicTileType.Random);
+            val.SetBlocked (TileMap.BlockedTileType.Unblocked);
+            val.SetBackground (TileMap.BackgroundTileType.NoBackground);
+
+            for (int i = 0; i < currentLevel.width * currentLevel.height; i++)
             {
-                var p = AssetDatabase.GetAssetPath(tiles[selectedTile]);
+                currentLevel.tiles[i] = val;
+            }
+            levelsDirty = true;
+        }
+
+        internal static void DeleteTileTypeInctance(System.Type t)
+        {
+            if (!tiles.ContainsKey(t) || !selectedTile.ContainsKey(t))
+            {
+                return;
+            }
+            if (tiles[t].Count > 0)
+            {
+                var p = AssetDatabase.GetAssetPath(tiles[t][selectedTile[t]]);
                 if (p != "")
                 {
-                    tilesToRemove.Add(tiles[selectedTile]);
+                    tilesToRemove.Add(tiles[t][selectedTile[t]]);
                 }
-                tiles.RemoveAt(selectedTile);
+                tiles[t].RemoveAt(selectedTile[t]);
             }
-            if (selectedTile >= tiles.Count)
+            if (selectedTile[t] >= tiles[t].Count)
             {
-                selectedTile--;
+                selectedTile[t]--;
             }
             tilesDirty = true;
         }
@@ -231,15 +266,31 @@ namespace Assets.Scripts.Editor
             tilesToRemove = new List<TileType>();
             Debug.Log("loading tiles...");
             string[] elements = Directory.GetFiles(TilesPath, "*.asset");
-            tiles = new List<TileType>();
-            tileCache = new Dictionary<TileMap.AliveType, TileType>();
+            tiles = new Dictionary<System.Type, List<TileType>>();
+            selectedTile = new Dictionary<System.Type, int>();
+            gizmos = new Dictionary<System.Enum, TileType>();
 
             for (int i = 0; i < elements.Length; i++)
             {
                 TileType asset = AssetDatabase.LoadAssetAtPath<TileType>(elements[i]);
+                if (asset == null)
+                {
+                    continue;
+                }
+                if (!tiles.ContainsKey(asset.GetType()))
+                {
+                    Debug.Log("Add type " + asset.GetType());
+                    tiles[asset.GetType()] = new List<TileType>();
+                    selectedTile[asset.GetType()] = -1;
+                }
+                Debug.Log("Load: " + asset.ToString());
                 asset.name = Path.GetFileNameWithoutExtension(elements[i]);
-                tiles.Add(asset);
-                tileCache[asset.id] = asset;
+                tiles[asset.GetType()].Add(asset);
+                var id = asset.GetId();
+                if (id != null)
+                {
+                    gizmos[id] = asset;
+                }
             }
         }
 
@@ -247,22 +298,29 @@ namespace Assets.Scripts.Editor
         {
             if (currentLevel.tiles == null)
             {
-                currentLevel.tiles = new TileMap.AliveType[currentLevel.width * currentLevel.height];
+                currentLevel.tiles = new LevelGrid.Tile[currentLevel.width * currentLevel.height];
                 for (int i = 0; i < currentLevel.width * currentLevel.height; i++)
                 {
-                    currentLevel.tiles[i] = TileMap.AliveType.None;
+                    currentLevel.tiles[i].SetMain (TileMap.BasicTileType.Random);
                 }
                 levelsDirty = true;
                 return;
             }
 
-            var newOne = new TileMap.AliveType[currentLevel.width * currentLevel.height];
+            var newOne = new LevelGrid.Tile[currentLevel.width * currentLevel.height];
             for (byte x = 0; x < currentLevel.width; ++x)
                 for (byte y = 0; y < currentLevel.height; ++y)
                 {
                     int index = x + oldWidth * y;
-                    bool old = x < oldWidth && y < oldHeight && index < currentLevel.tiles.Length;
-                    newOne[x + currentLevel.width * y] = old ? currentLevel.tiles[index] : TileMap.AliveType.None;
+                    int current = x + currentLevel.width * y;
+                    if (x < oldWidth && y < oldHeight && index < currentLevel.tiles.Length)
+                    {
+                        newOne[current] = currentLevel.tiles[index];
+                    }
+                    else
+                    {
+                        newOne[current].SetMain (TileMap.BasicTileType.Random);
+                    }
                 }
             currentLevel.tiles = newOne;
             levelsDirty = true;

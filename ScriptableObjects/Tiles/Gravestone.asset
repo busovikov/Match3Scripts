@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7aa463983ebcef8428a1ac373a133b29, type: 3}
-  m_Name: Zombie
-  m_EditorClassIdentifier: 
-  id: 4
-  image: {fileID: 2800000, guid: dbbb0da41fe48174d87de9879686a2c2, type: 3}
+  m_Script: {fileID: 0}
+  m_Name: Gravestone
+  m_EditorClassIdentifier: Assembly-CSharp::BlockedType
+  image: {fileID: 2800000, guid: 5fd7dc49a593ac242b09a004488e68d4, type: 3}
   dirty: 0
+  blockedID: 1
