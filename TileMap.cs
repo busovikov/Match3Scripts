@@ -47,25 +47,30 @@ public class TileMap : MonoBehaviour
         public Byte x;
         public Byte y;
     }
-
+    [System.Serializable]
     public enum BlockedTileType
     {
-        Unblocked,
         Gravestone,
         CartonBox,
         WoodenBox,
         Chain,
         Web,
         Ice,
-        Snowdrift
-    }
+        Snowdrift,
 
+
+        Transparent = 254,
+
+        Unblocked = 255
+    }
+    [System.Serializable]
     public enum BackgroundTileType
-    { 
-        NoBackground,
-        Carpet
-    }
+    {
+        Carpet,
 
+        NoBackground = 255
+    }
+    [System.Serializable]
     public enum BasicTileType
     {
         Bat,
@@ -75,24 +80,29 @@ public class TileMap : MonoBehaviour
         Zombie,
         TypeSize,
 
-        SpetialShift = 10,
-        Rocket_V = 10,
-        Rocket_H = 11,
-        Caudron = 12,
-        Poison_Green = 13,
-        Poison_Blue = 14,
-        Poison_Black = 15,
+        Random = 254,
 
-        None = 253,
-        Random = 254
+        None = 255
     }
 
+    [System.Serializable]
+    public enum SpetialType
+    {
+        Rocket_V,
+        Rocket_H,
+        Caudlron,
+        Poison_Green,
+        Poison_Blue,
+        Poison_Black,
+    }
+
+    [System.Serializable]
     public enum SpecialActivatedType
     {
-        Rocket_UP = 0,
-        Rocket_DN = 1,
-        Rocket_LT = 2,
-        Rocket_RT = 3,
+        Rocket_UP,
+        Rocket_DN,
+        Rocket_LT,
+        Rocket_RT,
     }
 
     void Awake()
@@ -115,29 +125,32 @@ public class TileMap : MonoBehaviour
             for (Byte j = 0; j < height; j++)
             {
                 var tileType = levelGrid.tiles[i + j * width];
-                if (tileType.Main() == BasicTileType.None)
-                    continue;
-
                 var position = new Vector3(i, j, 0) + transform.position;
                 Tile tile = GameObject.Instantiate(prefab, position, Quaternion.identity, transform).GetComponent<Tile>();
                 tile.gameObject.name = position.ToString();
+
+                tiles[i, j] = tile;
+
+                InitContent(i, j, tileType);
+
+                if (SkipTile(tile))
+                    continue;
+
                 Bind(tile, i, j);
-
+                tile.upIsEmpty += OnUpIsEmpty;
                 tile.backgroundInteracted += OnBackgroundInteract;
-
                 tile.blockedInteracted += OnBlockedInteract;
-
                 tile.contentDeleted += OnTileDeleted;
                 tile.contentDeleted += soundManager.OnTileDeleted;
-                tile.upIsEmpty += OnUpIsEmpty;
-                InitContent(i, j, tileType);
             }
     }
 
+    bool SkipTile(Tile t)
+    {
+        return t.tileType.Main() == BasicTileType.None && t.tileType.Blocked() == BlockedTileType.Unblocked; 
+    }
     void Bind(Tile tile, Byte x, Byte y)
     {
-        tiles[x, y] = tile;
-
         int x2 = x - 1;
 
         if (x2 >= 0 && tiles[x2, y] != null)
@@ -148,15 +161,14 @@ public class TileMap : MonoBehaviour
 
         for (int y2 = y - 1; y2 >= 0; y2--)
         {
-            if (tiles[x, y2] != null)
-            {
-                tile.down = tiles[x, y2];
-                tiles[x, y2].up = tile;
-                break;
-            }
+            if (tiles[x, y2] == null || SkipTile(tiles[x, y2])) continue;
+
+            tile.down = tiles[x, y2];
+            tiles[x, y2].up = tile;
+            break;
         }
     }
-    void OnTileDeleted(Tile sender, BasicTileType type)
+    void OnTileDeleted(Tile sender, LevelGrid.Tile type)
     {
         SpawnDead(type, sender.transform.position);
     }
@@ -187,14 +199,14 @@ public class TileMap : MonoBehaviour
         return GetTile(position).CreateContent(index, dropped, offset);
     }
 
-    public Coroutine CreateSpecial(Cell position, BasicTileType index)
+    public Coroutine CreateSpecial(Cell position, SpetialType index)
     {
         return GetTile(position).CreateContentSpecial(index);
 
     }
     private void InitContent(Byte x, Byte y, LevelGrid.Tile t)
     {
-        Cell position = new Cell(x, y);
+        var tile = GetTile(new Cell(x, y));
         var index = t.Main();
         if (index == BasicTileType.Random)
         {
@@ -218,7 +230,10 @@ public class TileMap : MonoBehaviour
             index = allowedTypes[UnityEngine.Random.Range(0, allowedTypes.Count)];
         }
         const bool dropped = false;
-        GetTile(position).CreateContent(index, dropped);
+
+        tile.CreateBlockedContent(t.Blocked(), 3, false);
+        tile.CreateContent(index, dropped);
+        tile.placeHolder.SetActive(t.Main() != BasicTileType.None || t.Blocked() != BlockedTileType.Unblocked && t.Blocked() != BlockedTileType.Transparent);
     }
 
     public Tile GetTile(Cell position)
@@ -251,21 +266,21 @@ public class TileMap : MonoBehaviour
         return withInBoundaries && tiles != null && tiles[x, y] != null && !tiles[x, y].Invalid && tiles[x, y].IsSet();
     }
 
-    public void SpawnDead(BasicTileType tileType, Vector2 position)
+    public void SpawnDead(LevelGrid.Tile tileType, Vector2 position)
     {
         const float rocketSpeed = 15f;
-        if (tileType == Goals.type)
+        if (tileType.Main() == Goals.type)
         {
-            ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead((int)tileType);
+            ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(tileType.Main());
             dead.obj.transform.position = position;
             var toGoal = (Vector2)(goal.position) - position;
             dead.anim.SetTrigger("Dead");
             dead.body.gravityScale = 0;
             dead.body.velocity = toGoal * 2.5f; //, ForceMode2D.Impulse );
         }
-        else if (tileType < BasicTileType.Rocket_V)
+        else 
         {
-            ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead((int)tileType);
+            ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(tileType.Main());
             dead.obj.transform.position = position;
             var x = UnityEngine.Random.Range(-1f, 1f);
             var y = UnityEngine.Random.Range(0.1f, 1f);
@@ -273,10 +288,11 @@ public class TileMap : MonoBehaviour
             dead.body.velocity = new Vector2(x, y) * 5; //, ForceMode2D.Impulse);
             dead.anim.SetTrigger("Dead");
         }
-        else if (tileType == BasicTileType.Rocket_V)
+        
+        if (tileType.Spetial() == SpetialType.Rocket_V)
         {
-            ObjectPool.PooledObject up = ObjectPool.Instance.GetSpecialActivated((int)SpecialActivatedType.Rocket_UP);
-            ObjectPool.PooledObject down = ObjectPool.Instance.GetSpecialActivated((int)SpecialActivatedType.Rocket_DN);
+            ObjectPool.PooledObject up = ObjectPool.Instance.GetAlive(SpecialActivatedType.Rocket_UP);
+            ObjectPool.PooledObject down = ObjectPool.Instance.GetAlive(SpecialActivatedType.Rocket_DN);
 
             up.obj.transform.position = position;
             up.body.gravityScale = 0;
@@ -285,10 +301,10 @@ public class TileMap : MonoBehaviour
             down.body.gravityScale = 0;
             down.body.velocity = Vector2.down * rocketSpeed;
         }
-        else if (tileType == BasicTileType.Rocket_H)
+        else if (tileType.Spetial() == SpetialType.Rocket_H)
         {
-            ObjectPool.PooledObject left = ObjectPool.Instance.GetSpecialActivated((int)SpecialActivatedType.Rocket_LT);
-            ObjectPool.PooledObject right = ObjectPool.Instance.GetSpecialActivated((int)SpecialActivatedType.Rocket_RT);
+            ObjectPool.PooledObject left = ObjectPool.Instance.GetAlive(SpecialActivatedType.Rocket_LT);
+            ObjectPool.PooledObject right = ObjectPool.Instance.GetAlive(SpecialActivatedType.Rocket_RT);
             left.obj.transform.position = position;
             left.body.gravityScale = 0;
             left.body.velocity = Vector2.left * rocketSpeed;
@@ -303,7 +319,7 @@ public class TileMap : MonoBehaviour
 #if UNITY_EDITOR
     public void OnDrawGizmosSelected()
     {
-        if (currentLevel.tiles == null || gizmos == null)
+        if (currentLevel == null || currentLevel.tiles == null || gizmos == null)
             return;
         
         var position = transform.position - Vector3.one * 0.5f;

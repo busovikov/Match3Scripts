@@ -8,6 +8,7 @@ using System.Linq;
 using UnityEditor.Overlays;
 using UnityEngine.UIElements;
 using Assets.Scripts.Editor;
+using System;
 
 [CustomEditor(typeof(TileMap)), CanEditMultipleObjects]
 public class LevelEditor : Editor
@@ -22,6 +23,8 @@ public class LevelEditor : Editor
         DrawLevelEditor();
         GUILayout.Space(5f);
         DrawLevelsPanel();
+        GUILayout.Space(5f);
+        DrawTileSetPanel();
     }
 
 
@@ -39,10 +42,15 @@ public class LevelEditor : Editor
                 var id = currentTile.GetId();
                 bool IdChanged = currentTile.SetId(EditorGUILayout.EnumPopup("Main Type:", id != null ? id : TileMap.BasicTileType.None ));
 
-                var imageChanged = currentTile.SetImage((Texture2D)EditorGUILayout.ObjectField("Image", currentTile.image, typeof(Texture2D), false));
+                var gizmoChanged = currentTile.SetGizmo((Texture2D)EditorGUILayout.ObjectField("Gizmo (Editor)", currentTile.gizmo, typeof(Texture2D), false));
 
-                if (oldName != currentTile.name || imageChanged || IdChanged )
-                    LevelEditorHelper.tilesDirty = true;
+                var imageChanged = currentTile.SetImage((Texture2D)EditorGUILayout.ObjectField("Image", currentTile.image, typeof(Texture2D), false));
+                LevelEditorHelper.gizmos[currentTile.GetId()] = currentTile;
+                
+                var destructionImageChanged = currentTile.SetDestructionImage((Texture2D)EditorGUILayout.ObjectField("Destruction Image", currentTile.destructionImage, typeof(Texture2D), false));
+
+                if (oldName != currentTile.name || imageChanged || IdChanged || destructionImageChanged || gizmoChanged)
+                    LevelEditorHelper.SetTileDirty(currentTile.GetType());
             }
         }
     }
@@ -71,22 +79,6 @@ public class LevelEditor : Editor
             {
                 RebuidGrid(oldWidth, oldHeight);
             }
-
-            using (new GUILayout.HorizontalScope())
-            {
-                if (LevelEditorHelper.levels.Count > 0 && GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20)))
-                {
-                    DeleteLevelGridInctance();
-                }
-                if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
-                {
-                    AddLevelGridInctance();
-                }
-                if (LevelEditorHelper.levelsDirty && GUILayout.Button("Save", GUILayout.Width(50), GUILayout.Height(20)))
-                {
-                    SaveLevelGridAssets();
-                }
-            }
         }
     }
 
@@ -110,6 +102,23 @@ public class LevelEditor : Editor
                 LevelEditorHelper.ResetGrid(tm.currentLevel);
             }
         }
+
+        using (new GUILayout.HorizontalScope())
+        {
+            if (LevelEditorHelper.levels.Count > 0 && GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20)))
+            {
+                DeleteLevelGridInctance();
+            }
+            if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
+            {
+                AddLevelGridInctance();
+            }
+            if (LevelEditorHelper.levelsDirty && GUILayout.Button("Save", GUILayout.Width(50), GUILayout.Height(20)))
+            {
+                SaveLevelGridAssets();
+            }
+        }
+
         var levelList = LevelEditorHelper.levels.Select(l => 
         {
             if (tm.levelGrid != null && tm.levelGrid.name == l.name)
@@ -129,12 +138,61 @@ public class LevelEditor : Editor
         GUILayout.EndScrollView();
     }
 
+    private void DrawTileSetPanel()
+    {
+        var tileset = LevelEditorHelper.GetSelectedTileSet();
+        LevelEditorHelper.setsDirty |= tileset.SetName(GUILayout.TextField(tileset.name));
+
+        if (GUILayout.Button("Save All Tiles to Set"))
+        {
+            LevelEditorHelper.SaveAllTilesToSet();
+        }
+
+        using (new GUILayout.HorizontalScope())
+        {
+            if (LevelEditorHelper.tilesSets.Count > 0 && GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20)))
+            {
+                LevelEditorHelper.DeleteTileSetInctance();
+            }
+            if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
+            {
+                LevelEditorHelper.AddTileSetInctance();
+            }
+            if (LevelEditorHelper.setsDirty && GUILayout.Button("Save", GUILayout.Width(50), GUILayout.Height(20)))
+            {
+                LevelEditorHelper.SaveTileSetAssets();
+            }
+        }
+
+        var setList = LevelEditorHelper.tilesSets.Select(s =>
+        {
+            int count = s.tiles == null ? 0 : s.tiles.Length;
+            return "" + s.name + " (" + count.ToString() + ")";
+        }).ToArray();
+
+        LevelEditorHelper.tileSetScrollPosition = GUILayout.BeginScrollView(LevelEditorHelper.tileSetScrollPosition, GUILayout.MinHeight(100));
+        int set = GUILayout.SelectionGrid(LevelEditorHelper.selectedTileSet, setList, 1, EditorStyles.toolbarButton, GUILayout.Height(100));
+
+        if (LevelEditorHelper.tilesSets.Count > 0 && set != LevelEditorHelper.selectedTileSet)
+        {
+            LevelEditorHelper.selectedTileSet = set;
+        }
+        GUILayout.EndScrollView();
+    }
+
     private void OnEnable()
     {
         this.LoadLevels();
+        this.LoadTileSets();
         (target as TileMap).currentLevel = LevelEditorHelper.GetSelectedLevel();
         (target as TileMap).gizmos = LevelEditorHelper.gizmos;
     }
+
+    private void LoadTileSets()
+    {
+        LevelEditorHelper.LoadTileSets();
+    }
+
     private void LoadLevels()
     {
         LevelEditorHelper.LoadLevels();
@@ -357,7 +415,7 @@ public class LevelEditorTool : EditorTool, IDrawSelectedHandles
                 GUILayout.Label(type.ToString());
                 using (new GUILayout.HorizontalScope())
                 {
-                    bool changed = LevelEditorHelper.SetSelectedTile(type, GUILayout.SelectionGrid(LevelEditorHelper.selectedTile[type], LevelEditorHelper.tiles[type].Select(l => l.image).ToArray(), 5, EditorStyles.toolbarButton, GUILayout.Width(200)));
+                    bool changed = LevelEditorHelper.SetSelectedTile(type, GUILayout.SelectionGrid(LevelEditorHelper.selectedTile[type], LevelEditorHelper.tiles[type].Select(l => l.gizmo).ToArray(), 5, EditorStyles.toolbarButton, GUILayout.Width(200)));
                     if (changed)
                     {
                         (target as TileMap).currentTile = LevelEditorHelper.GetSelectedTile(type);
@@ -372,8 +430,10 @@ public class LevelEditorTool : EditorTool, IDrawSelectedHandles
                     if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
                     {
                         AddTileTypeInctance(type);
+
+                        (target as TileMap).currentTile = LevelEditorHelper.GetSelectedTile(type);
                     }
-                    if (LevelEditorHelper.tilesDirty && GUILayout.Button("Save", GUILayout.Width(50), GUILayout.Height(20)))
+                    if (LevelEditorHelper.IsTileDirty(type) && GUILayout.Button("Save", GUILayout.Width(50), GUILayout.Height(20)))
                     {
                         SaveTileAssets(type);
                     }
@@ -427,21 +487,15 @@ public class LevelEditorTool : EditorTool, IDrawSelectedHandles
         {
             if (erase)
             {
-                tileMap.currentLevel.tiles[x + tileMap.currentLevel.width * y].SetMain(TileMap.BasicTileType.None);
-                tileMap.currentLevel.tiles[x + tileMap.currentLevel.width * y].SetBlocked(TileMap.BlockedTileType.Unblocked);
-                tileMap.currentLevel.tiles[x + tileMap.currentLevel.width * y].SetBackground (TileMap.BackgroundTileType.NoBackground);
+                tileMap.currentLevel.SetZero(x, y);
             }
             else
             {
-                tileMap.currentLevel.tiles[x + tileMap.currentLevel.width * y].SetMain(tile.GetId());
-                tileMap.currentLevel.tiles[x + tileMap.currentLevel.width * y].SetBlocked(tile.GetId());
-                tileMap.currentLevel.tiles[x + tileMap.currentLevel.width * y].SetBackground(tile.GetId());
+                tileMap.currentLevel.Set(x, y, tile);
             }
         }
-        
-        //Rect rect = new Rect(pos, Vector2.one);
-        //bool contain = rect.Contains(mousePosition);
-        Debug.Log("MouseMove over " + x + " " + y);
+
+        AssetDatabase.SaveAssetIfDirty(tileMap.currentLevel);
     }
     private double PointRectDist(Vector3 p, Rect rect)
     {

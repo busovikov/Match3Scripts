@@ -9,8 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cae865512db9bd946952e7b5f2940034, type: 3}
-  m_Name: Level 2
+  m_Script: {fileID: 11500000, guid: fb035c2581138484bbcff0a73ad3e022, type: 3}
+  m_Name: Transparent
   m_EditorClassIdentifier: 
-  width: 6
-  height: 7
+  gizmo: {fileID: 2800000, guid: 53aac52fa919e86498ebe097c05c27cc, type: 3}
+  image: {fileID: 0}
+  destructionImage: {fileID: 0}
+  dirty: 0
+  blockedID: 254

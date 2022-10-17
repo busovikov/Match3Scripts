@@ -23,8 +23,8 @@ namespace Assets.Scripts.Editor
         #endregion
 
         #region TileTypeManagment
+        private static Dictionary<System.Type, bool> tilesDirty;
         public const string TilesPath = "Assets/Scripts/ScriptableObjects/Tiles";
-        public static bool tilesDirty = false;
         public static Dictionary<System.Type, int> selectedTile;
         public static Dictionary<System.Type,List<TileType>> tiles;
         public static List<TileType> tilesToRemove;
@@ -33,6 +33,26 @@ namespace Assets.Scripts.Editor
         public static Dictionary<System.Enum, TileType> gizmos;
         #endregion
 
+        #region TileSetManagment
+        public const string TileSetsPath = "Assets/Scripts/ScriptableObjects/TilesSets";
+        public static int selectedTileSet;
+        public static List<TileSet> tilesSets;
+        public static List<TileSet> tilesSetsToRemove;
+        public static bool setsDirty = false;
+        public static Vector2 tileSetScrollPosition;
+        #endregion
+
+        public static void SetTileDirty(System.Type t)
+        {
+            tilesDirty[t] = true;
+        }
+
+        public static bool IsTileDirty(System.Type t)
+        {
+            bool res = false;
+            tilesDirty.TryGetValue(t, out res);
+            return res;
+        }
         public static bool SetSelectedTile(System.Type t, int value)
         {
             if (selectedTile[t] != value)
@@ -79,17 +99,13 @@ namespace Assets.Scripts.Editor
 
         internal static void AddNewTile(System.Type t)
         {
-            if (!tiles.ContainsKey(t) || !selectedTile.ContainsKey(t))
-            {
-                return;
-            }
             TileType newTile = ScriptableObject.CreateInstance(t.Name) as TileType;
             newTile.name = GetUniqueName("New Tile");
             newTile.image = new Texture2D(40, 40);
 
             selectedTile[t] = tiles[t].Count;
             tiles[t].Add(newTile);
-            tilesDirty = true;
+            SetTileDirty(t);
         }
 
         internal static LevelGrid GetSelectedLevel()
@@ -138,7 +154,7 @@ namespace Assets.Scripts.Editor
                 AssetDatabase.SaveAssetIfDirty(asset);
             }
             //AssetDatabase.SaveAssets();
-            tilesDirty = false;
+            tilesDirty[t] = false;
         }
 
         internal static void ResetGrid(LevelGrid currentLevel)
@@ -175,7 +191,7 @@ namespace Assets.Scripts.Editor
             {
                 selectedTile[t]--;
             }
-            tilesDirty = true;
+            tilesDirty[t] = true;
         }
 
         internal static void LoadLevels()
@@ -188,9 +204,14 @@ namespace Assets.Scripts.Editor
             for (int i = 0; i < elements.Length; i++)
             {
                 LevelGrid assets = AssetDatabase.LoadAssetAtPath<LevelGrid>(elements[i]);
+                if (assets == null)
+                    continue;
                 assets.name = Path.GetFileNameWithoutExtension(elements[i]);
-
                 levels.Add(assets);
+            }
+            if (levels.Count > 0)
+            {
+                selectedLevel = 0;
             }
         }
 
@@ -261,15 +282,140 @@ namespace Assets.Scripts.Editor
             levelsDirty = true;
         }
 
+        //=======================================================================================================
+
+        internal static TileSet GetSelectedTileSet()
+        {
+            if (tilesSets.Count > 0)
+                return tilesSets[selectedTileSet];
+            return null;
+        }
+        internal static void LoadTileSets()
+        {
+            Debug.Log("loading tile sets...");
+            tilesSetsToRemove = new List<TileSet>();
+            string[] elements = Directory.GetFiles(TileSetsPath, "*.asset");
+            tilesSets = new List<TileSet>();
+
+            for (int i = 0; i < elements.Length; i++)
+            {
+                TileSet assets = AssetDatabase.LoadAssetAtPath<TileSet>(elements[i]);
+                if (assets == null)
+                    continue;
+                assets.name = Path.GetFileNameWithoutExtension(elements[i]);
+                tilesSets.Add(assets);
+            }
+            if (levels.Count > 0)
+            {
+                selectedTileSet = 0;
+            }
+        }
+
+        internal static void AddTileSetInctance()
+        {
+            TileSet newSet = ScriptableObject.CreateInstance<TileSet>();
+            newSet.name = GetUniqueName(levels, "New TileSet");
+
+            selectedTileSet = tilesSets.Count;
+            tilesSets.Add(newSet);
+            setsDirty = true;
+        }
+
+        internal static void SaveTileSetAssets()
+        {
+            foreach (var asset in tilesSetsToRemove)
+            {
+                var p = AssetDatabase.GetAssetPath(asset);
+                AssetDatabase.DeleteAsset(p);
+            }
+
+            StringBuilder sb = new StringBuilder(TileSetsPath, 50);
+            foreach (var asset in tilesSets)
+            {
+                var p = AssetDatabase.GetAssetPath(asset);
+                if (p == "")
+                {
+                    sb.Clear();
+                    sb.AppendFormat("{0}/{1}.asset", TileSetsPath, asset.name);
+                    AssetDatabase.CreateAsset(asset, sb.ToString());
+                }
+            }
+
+            var set = tilesSets[selectedLevel];
+            var path = AssetDatabase.GetAssetPath(set);
+
+            if (Path.GetFileNameWithoutExtension(path) != set.name)
+            {
+                string err = AssetDatabase.RenameAsset(path, set.name);
+                if (err != string.Empty)
+                {
+                    Debug.Log(err);
+                }
+            }
+
+            AssetDatabase.SaveAssetIfDirty(set);
+
+            setsDirty = false;
+        }
+
+        internal static void DeleteTileSetInctance()
+        {
+            if (tilesSets.Count > 0)
+            {
+                var p = AssetDatabase.GetAssetPath(tilesSets[selectedTileSet]);
+                if (p != "")
+                {
+                    tilesSetsToRemove.Add(tilesSets[selectedTileSet]);
+                }
+                tilesSets.RemoveAt(selectedTileSet);
+            }
+            if (selectedTileSet >= tilesSets.Count)
+            {
+                selectedTileSet--;
+            }
+            setsDirty = true;
+        }
+
+        internal static void SaveAllTilesToSet()
+        {
+            int size = 0;
+            foreach (var t in tiles)
+            {
+                size += t.Value.Count;
+            }
+            tilesSets[selectedTileSet].tiles = new TileSet.TypeToTile[size];
+
+            int idx = 0;
+            foreach (var t in tiles)
+            {
+                foreach (var tile in t.Value)
+                {
+                    tilesSets[selectedTileSet].tiles[idx++] = new TileSet.TypeToTile(tile.GetId(), tile );
+                }
+            }
+
+            AssetDatabase.SaveAssetIfDirty(tilesSets[selectedTileSet]);
+        }
+
+        //=======================================================================================================
         internal static void LoadTiles()
         {
             tilesToRemove = new List<TileType>();
-            Debug.Log("loading tiles...");
-            string[] elements = Directory.GetFiles(TilesPath, "*.asset");
             tiles = new Dictionary<System.Type, List<TileType>>();
             selectedTile = new Dictionary<System.Type, int>();
+            tilesDirty = new Dictionary<System.Type, bool>();
             gizmos = new Dictionary<System.Enum, TileType>();
 
+            Debug.Log("loading tiles...");
+            foreach (var t in typeof(TileType).Assembly.GetTypes()
+                .Where(t => t.IsSubclassOf(typeof(TileType)) && !t.IsAbstract))
+            {
+                Debug.Log("Found: " + t.ToString());
+                tiles[t] = new List<TileType>();
+                selectedTile[t] = -1;
+            }
+
+            string[] elements = Directory.GetFiles(TilesPath, "*.asset");
             for (int i = 0; i < elements.Length; i++)
             {
                 TileType asset = AssetDatabase.LoadAssetAtPath<TileType>(elements[i]);
@@ -277,12 +423,7 @@ namespace Assets.Scripts.Editor
                 {
                     continue;
                 }
-                if (!tiles.ContainsKey(asset.GetType()))
-                {
-                    Debug.Log("Add type " + asset.GetType());
-                    tiles[asset.GetType()] = new List<TileType>();
-                    selectedTile[asset.GetType()] = -1;
-                }
+                
                 Debug.Log("Load: " + asset.ToString());
                 asset.name = Path.GetFileNameWithoutExtension(elements[i]);
                 tiles[asset.GetType()].Add(asset);

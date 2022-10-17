@@ -9,11 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fb035c2581138484bbcff0a73ad3e022, type: 3}
-  m_Name: Gravestone
+  m_Script: {fileID: 11500000, guid: e73143798b485cb4089ec6a7d7c6ef38, type: 3}
+  m_Name: Cauldron
   m_EditorClassIdentifier: 
-  gizmo: {fileID: 2800000, guid: 5fd7dc49a593ac242b09a004488e68d4, type: 3}
-  image: {fileID: 2800000, guid: 5fd7dc49a593ac242b09a004488e68d4, type: 3}
+  gizmo: {fileID: 2800000, guid: 409caaee7996e8f40afa494c06ee56f6, type: 3}
+  image: {fileID: 2800000, guid: 89d88c1e358b9fa4fb05be48c79d8a3c, type: 3}
   destructionImage: {fileID: 0}
   dirty: 0
-  blockedID: 0
+  spetialID: 2
