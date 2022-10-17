@@ -1,5 +1,9 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using UnityEditor;
 using UnityEngine;
 
 public class ObjectPool : MonoBehaviour
@@ -7,6 +11,10 @@ public class ObjectPool : MonoBehaviour
     #region
     [HideInInspector]
     public static ObjectPool Instance;
+
+    public TileSet tileSet;
+    private Dictionary<object, Sprite> textures;
+    private Dictionary<object, Sprite> texturesDestroyed;
     public struct PooledObject
     {
         public GameObject obj;
@@ -58,6 +66,7 @@ public class ObjectPool : MonoBehaviour
 
     public Pooled dead;
     public Pooled alive;
+    public Pooled blocked;
     public Pooled special;
     public Pooled specialActivated;
 
@@ -78,6 +87,33 @@ public class ObjectPool : MonoBehaviour
     void Start()
     {
         InitPool(dead);
+        loadTextures();
+    }
+
+    private void loadTextures()
+    {
+        textures = new Dictionary<object, Sprite>();
+        texturesDestroyed = new Dictionary<object, Sprite>();
+
+        Assembly asm = typeof(TileMap).Assembly;
+        
+
+        foreach (var t in tileSet.tiles)
+        {
+            var tex1 = t.type.image;
+            var tex2 = t.type.destructionImage;
+            Type type = asm.GetType(t.category);
+            object o;
+            if (Enum.TryParse(type, t.value, out o))
+            {
+                if (tex1 != null)
+                {
+                    textures[o] = Sprite.Create(tex1, new Rect(0, 0, tex1.width, tex1.height), new Vector2(.5f, .5f), 512f);
+                }
+                if (tex2 != null)
+                    texturesDestroyed[o] = Sprite.Create(tex2, new Rect(0, 0, tex2.width, tex2.height), new Vector2(.5f, .5f));
+            }
+        }
     }
 
     PooledObject MakePooled(GameObject prefab)
@@ -128,6 +164,32 @@ public class ObjectPool : MonoBehaviour
         return pooled.Pool[pooled.Index];
     }
 
+    public PooledObject GetAlive(System.Enum type)
+    {
+        PooledObject o = Get(alive);
+
+        Sprite s = null;
+        textures.TryGetValue(type, out s);
+        o.spriteRenderer.sprite = s;
+
+        o.obj.SetActive(true);
+        o.obj.transform.localScale = Vector3.one * .9f;
+        return o;
+    }
+
+    public PooledObject GetDead(System.Enum type)
+    {
+        PooledObject o = Get(dead);
+
+        Sprite s = null;
+        texturesDestroyed.TryGetValue(type, out s);
+        o.spriteRenderer.sprite = s;
+
+        o.obj.transform.rotation = Quaternion.identity;
+        o.obj.SetActive(true);
+        return o;
+    }
+    /*
     public PooledObject GetDead(int type)
     {
         PooledObject o = Get(dead);
@@ -162,4 +224,12 @@ public class ObjectPool : MonoBehaviour
         o.obj.SetActive(true);
         return o;
     }
+
+    internal PooledObject GetBlocked(int type)
+    {
+        PooledObject o = Get(blocked);
+        o.spriteRenderer.sprite = blocked.GetSprite(type);
+        o.obj.SetActive(true);
+        return o;
+    }*/
 }

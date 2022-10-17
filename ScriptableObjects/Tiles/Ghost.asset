@@ -9,9 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4a207f386b12a0440802b3bb50b52325, type: 3}
+  m_Script: {fileID: 11500000, guid: b8da8668cad1fb0489dea02c74a623d3, type: 3}
   m_Name: Ghost
   m_EditorClassIdentifier: 
-  image: {fileID: 2800000, guid: 8f40f128a882f004185e61be4327cc06, type: 3}
+  gizmo: {fileID: 2800000, guid: 8f40f128a882f004185e61be4327cc06, type: 3}
+  image: {fileID: 2800000, guid: 6a25ee8923403ec4c891cab0c83cf402, type: 3}
+  destructionImage: {fileID: 2800000, guid: 23888f9ae22538f4898d4aa287a17fc1, type: 3}
   dirty: 0
   mainID: 2

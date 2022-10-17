@@ -9,11 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fb035c2581138484bbcff0a73ad3e022, type: 3}
-  m_Name: Gravestone
+  m_Script: {fileID: 11500000, guid: e73143798b485cb4089ec6a7d7c6ef38, type: 3}
+  m_Name: PoisonBlue
   m_EditorClassIdentifier: 
-  gizmo: {fileID: 2800000, guid: 5fd7dc49a593ac242b09a004488e68d4, type: 3}
-  image: {fileID: 2800000, guid: 5fd7dc49a593ac242b09a004488e68d4, type: 3}
+  gizmo: {fileID: 2800000, guid: 7235ccca0d8cd7648ab1e00f14ab92d0, type: 3}
+  image: {fileID: 2800000, guid: 803b6cb5cdab5be4b9ef7aa0c1f3f2ac, type: 3}
   destructionImage: {fileID: 0}
   dirty: 0
-  blockedID: 0
+  spetialID: 4

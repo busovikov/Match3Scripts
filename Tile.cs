@@ -6,8 +6,10 @@ using System;
 public class Tile : MonoBehaviour
 {
     [SerializeField]
+    public GameObject placeHolder;
     public GameObject container;
     public GameObject content;
+    public GameObject blockedContent;
     public GameObject[] toEngulf;
     public LevelGrid.Tile tileType;
     private bool invalid = false;
@@ -16,7 +18,7 @@ public class Tile : MonoBehaviour
 
     public delegate void InteractBackgroundHandler(Tile sender, TileMap.BackgroundTileType type);
     public delegate void InteractBlockedHandler(Tile sender, TileMap.BlockedTileType type);
-    public delegate void DeleteTileHandler(Tile sender, TileMap.BasicTileType type);
+    public delegate void DeleteTileHandler(Tile sender, LevelGrid.Tile type);
 
     public event InteractBackgroundHandler backgroundInteracted;
     public event InteractBlockedHandler blockedInteracted;
@@ -239,7 +241,7 @@ public class Tile : MonoBehaviour
             {
                 if (contentDeleted != null)
                 {
-                    contentDeleted(this, tileType.Main());
+                    contentDeleted(this, tileType);
                 }
                 obj.SetActive(false);
             }
@@ -260,7 +262,7 @@ public class Tile : MonoBehaviour
 
     public bool IsFallable()
     {
-        return !(tileType.Blocked() != TileMap.BlockedTileType.Unblocked || tileType.Main() == TileMap.BasicTileType.None);
+        return tileType.Blocked() == TileMap.BlockedTileType.Unblocked;
     }
     public Coroutine DropTo(Tile tileToDrop)
     {
@@ -274,6 +276,7 @@ public class Tile : MonoBehaviour
             {
                 return right.DropTo(tileToDrop);
             }
+            return null;
         }
 
         if (content != null)
@@ -291,17 +294,37 @@ public class Tile : MonoBehaviour
         }
         return null;
     }
+
+
+    public Coroutine CreateBlockedContent(TileMap.BlockedTileType type, int level, bool permanent)
+    {
+        tileType.SetBlocked(type);
+
+        if (type != TileMap.BlockedTileType.Unblocked)
+        {
+            return null;
+        }
+
+        ObjectPool.PooledObject pooledObj = ObjectPool.Instance.GetAlive(type);
+        pooledObj.obj.transform.position = container.transform.position;
+        blockedContent = pooledObj.obj;
+        blockedContent.transform.SetParent(container.transform);
+
+        blockedLevel = permanent ? -1 : level;
+
+        return null;
+    }
     public Coroutine CreateContent(TileMap.BasicTileType type, bool dropped, Vector3 offset = default)
     {
         tileType.SetMain(type);
 
-        if (tileType.Blocked() != TileMap.BlockedTileType.Unblocked)
+        if (type == TileMap.BasicTileType.None)
         {
             Invalid = false;
             return null;
         }
 
-        ObjectPool.PooledObject pooledObj = ObjectPool.Instance.GetAlive((int)type);
+        ObjectPool.PooledObject pooledObj = ObjectPool.Instance.GetAlive(type);
         pooledObj.obj.transform.position = container.transform.position + offset;
         content = pooledObj.obj;
         content.transform.SetParent(container.transform);
@@ -318,9 +341,9 @@ public class Tile : MonoBehaviour
         return null;
     }
 
-    public Coroutine CreateContentSpecial(TileMap.BasicTileType type)
+    public Coroutine CreateContentSpecial(TileMap.SpetialType type)
     {
-        ObjectPool.PooledObject pooledObj = ObjectPool.Instance.GetSpecial((int)(type - TileMap.BasicTileType.SpetialShift));
+        ObjectPool.PooledObject pooledObj = ObjectPool.Instance.GetAlive(type);
         pooledObj.obj.transform.position = container.transform.position;
         content = pooledObj.obj;
         content.GetComponent<SpriteRenderer>().sortingOrder++;
