@@ -40,8 +40,20 @@ namespace Assets.Scripts.Editor
         public static List<TileSet> tilesSetsToRemove;
         public static bool setsDirty = false;
         public static Vector2 tileSetScrollPosition;
+        private static bool initialized = false;
         #endregion
 
+        public static void Init(TileMap target)
+        {
+            if (initialized)
+                return;
+            LoadLevels();
+            LoadTiles();
+            LoadTileSets();
+            target.currentLevel = GetSelectedLevel();
+            target.gizmos = gizmos;
+            initialized = true;
+        }
         public static void SetTileDirty(System.Type t)
         {
             tilesDirty[t] = true;
@@ -208,6 +220,7 @@ namespace Assets.Scripts.Editor
                     continue;
                 assets.name = Path.GetFileNameWithoutExtension(elements[i]);
                 levels.Add(assets);
+                assets.Validate();
             }
             if (levels.Count > 0)
             {
@@ -262,6 +275,11 @@ namespace Assets.Scripts.Editor
 
             //AssetDatabase.SaveAssets();
             levelsDirty = false;
+        }
+
+        internal static void Reset()
+        {
+            initialized = false;
         }
 
         internal static void DeleteLevelGridInctance()
@@ -410,7 +428,6 @@ namespace Assets.Scripts.Editor
             foreach (var t in typeof(TileType).Assembly.GetTypes()
                 .Where(t => t.IsSubclassOf(typeof(TileType)) && !t.IsAbstract))
             {
-                Debug.Log("Found: " + t.ToString());
                 tiles[t] = new List<TileType>();
                 selectedTile[t] = -1;
             }
@@ -424,7 +441,6 @@ namespace Assets.Scripts.Editor
                     continue;
                 }
                 
-                Debug.Log("Load: " + asset.ToString());
                 asset.name = Path.GetFileNameWithoutExtension(elements[i]);
                 tiles[asset.GetType()].Add(asset);
                 var id = asset.GetId();
@@ -433,38 +449,6 @@ namespace Assets.Scripts.Editor
                     gizmos[id] = asset;
                 }
             }
-        }
-
-        internal static void RebuildGrid(int oldWidth, int oldHeight, LevelGrid currentLevel)
-        {
-            if (currentLevel.tiles == null)
-            {
-                currentLevel.tiles = new LevelGrid.Tile[currentLevel.width * currentLevel.height];
-                for (int i = 0; i < currentLevel.width * currentLevel.height; i++)
-                {
-                    currentLevel.tiles[i].SetMain (TileMap.BasicTileType.Random);
-                }
-                levelsDirty = true;
-                return;
-            }
-
-            var newOne = new LevelGrid.Tile[currentLevel.width * currentLevel.height];
-            for (byte x = 0; x < currentLevel.width; ++x)
-                for (byte y = 0; y < currentLevel.height; ++y)
-                {
-                    int index = x + oldWidth * y;
-                    int current = x + currentLevel.width * y;
-                    if (x < oldWidth && y < oldHeight && index < currentLevel.tiles.Length)
-                    {
-                        newOne[current] = currentLevel.tiles[index];
-                    }
-                    else
-                    {
-                        newOne[current].SetMain (TileMap.BasicTileType.Random);
-                    }
-                }
-            currentLevel.tiles = newOne;
-            levelsDirty = true;
         }
     }
 }

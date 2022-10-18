@@ -37,3 +37,33 @@ MonoBehaviour:
   - category: TileMap+BasicTileType
     value: Zombie
     type: {fileID: 11400000, guid: 96107786bd47bf2438c37ee7f3ea7429, type: 2}
+  - category: TileMap+SpetialType
+    value: Caudlron
+    type: {fileID: 11400000, guid: 1ada2bbfdb7f6c345bccceb8b20f5424, type: 2}
+  - category: TileMap+SpetialType
+    value: Poison_Black
+    type: {fileID: 11400000, guid: b96668a8fb45bc64d82af8a006177ef6, type: 2}
+  - category: TileMap+SpetialType
+    value: Poison_Blue
+    type: {fileID: 11400000, guid: 48b01498745d6be4b99d7677dc5ae09a, type: 2}
+  - category: TileMap+SpetialType
+    value: Poison_Green
+    type: {fileID: 11400000, guid: 908d2f25d2588784db05fe2f3d81e698, type: 2}
+  - category: TileMap+SpetialType
+    value: Rocket_H
+    type: {fileID: 11400000, guid: ddec16fd57e9f624c986b71a2d6fb0d2, type: 2}
+  - category: TileMap+SpetialType
+    value: Rocket_V
+    type: {fileID: 11400000, guid: 08102241447c7524cb8b9f04ff790ce8, type: 2}
+  - category: TileMap+SpetialType
+    value: Rocket_UP
+    type: {fileID: 11400000, guid: 00b9802defaa1fb439b06abf5f40db0d, type: 2}
+  - category: TileMap+SpetialType
+    value: Rocket_DN
+    type: {fileID: 11400000, guid: 2bd8d45302ce8854996ee2cd93782a5b, type: 2}
+  - category: TileMap+SpetialType
+    value: Rocket_LT
+    type: {fileID: 11400000, guid: 09b212b5d4ec52343b1c4820dccc8e26, type: 2}
+  - category: TileMap+SpetialType
+    value: Rocket_RT
+    type: {fileID: 11400000, guid: 67fd451b6cedd2147ac56bd70f6654c8, type: 2}

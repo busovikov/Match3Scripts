@@ -14,4 +14,260 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   width: 8
   height: 8
-  tiles: []
+  tiles:
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 1
+    main: 1
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255
+  - spetial: 0
+    main: 254
+    blocked: 255
+    background: 255

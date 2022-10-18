@@ -343,12 +343,17 @@ public class Tile : MonoBehaviour
 
     public Coroutine CreateContentSpecial(TileMap.SpetialType type)
     {
+        if (type == TileMap.SpetialType.None) 
+        {
+            return null;
+        }
+        tileType.SetSpetial(type);
+
         ObjectPool.PooledObject pooledObj = ObjectPool.Instance.GetAlive(type);
         pooledObj.obj.transform.position = container.transform.position;
         content = pooledObj.obj;
         content.GetComponent<SpriteRenderer>().sortingOrder++;
         content.transform.SetParent(container.transform);
-        tileType.SetMain(type);
         animator.Play("Tile_Special", -1, 0);
         return StartCoroutine(WaitForAnimationDone());
     }

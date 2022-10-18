@@ -94,15 +94,13 @@ public class TileMap : MonoBehaviour
         Poison_Green,
         Poison_Blue,
         Poison_Black,
-    }
 
-    [System.Serializable]
-    public enum SpecialActivatedType
-    {
         Rocket_UP,
         Rocket_DN,
         Rocket_LT,
         Rocket_RT,
+
+        None = 255
     }
 
     void Awake()
@@ -147,7 +145,7 @@ public class TileMap : MonoBehaviour
 
     bool SkipTile(Tile t)
     {
-        return t.tileType.Main() == BasicTileType.None && t.tileType.Blocked() == BlockedTileType.Unblocked; 
+        return t.tileType.Main() == BasicTileType.None && t.tileType.Spetial() == SpetialType.None && t.tileType.Blocked() == BlockedTileType.Unblocked; 
     }
     void Bind(Tile tile, Byte x, Byte y)
     {
@@ -207,8 +205,10 @@ public class TileMap : MonoBehaviour
     private void InitContent(Byte x, Byte y, LevelGrid.Tile t)
     {
         var tile = GetTile(new Cell(x, y));
-        var index = t.Main();
-        if (index == BasicTileType.Random)
+        var main = t.Main();
+        var spetial = t.Spetial();
+        var blocked = t.Blocked();
+        if (main == BasicTileType.Random)
         {
             List<BasicTileType> allowedTypes = Enumerable.Range(0, (int)BasicTileType.TypeSize).Select((index) => (BasicTileType)index).ToList<BasicTileType>();
             if (x > 1)
@@ -227,13 +227,15 @@ public class TileMap : MonoBehaviour
                     allowedTypes.Remove(down);
                 }
             }
-            index = allowedTypes[UnityEngine.Random.Range(0, allowedTypes.Count)];
+            main = allowedTypes[UnityEngine.Random.Range(0, allowedTypes.Count)];
         }
+        
         const bool dropped = false;
 
         tile.CreateBlockedContent(t.Blocked(), 3, false);
-        tile.CreateContent(index, dropped);
-        tile.placeHolder.SetActive(t.Main() != BasicTileType.None || t.Blocked() != BlockedTileType.Unblocked && t.Blocked() != BlockedTileType.Transparent);
+        tile.CreateContent(main, dropped);
+        tile.CreateContentSpecial(spetial);
+        tile.placeHolder.SetActive(main != BasicTileType.None || spetial != SpetialType.None || blocked != BlockedTileType.Unblocked && blocked != BlockedTileType.Transparent);
     }
 
     public Tile GetTile(Cell position)
@@ -291,8 +293,8 @@ public class TileMap : MonoBehaviour
         
         if (tileType.Spetial() == SpetialType.Rocket_V)
         {
-            ObjectPool.PooledObject up = ObjectPool.Instance.GetAlive(SpecialActivatedType.Rocket_UP);
-            ObjectPool.PooledObject down = ObjectPool.Instance.GetAlive(SpecialActivatedType.Rocket_DN);
+            ObjectPool.PooledObject up = ObjectPool.Instance.GetAlive(SpetialType.Rocket_UP);
+            ObjectPool.PooledObject down = ObjectPool.Instance.GetAlive(SpetialType.Rocket_DN);
 
             up.obj.transform.position = position;
             up.body.gravityScale = 0;
@@ -303,8 +305,8 @@ public class TileMap : MonoBehaviour
         }
         else if (tileType.Spetial() == SpetialType.Rocket_H)
         {
-            ObjectPool.PooledObject left = ObjectPool.Instance.GetAlive(SpecialActivatedType.Rocket_LT);
-            ObjectPool.PooledObject right = ObjectPool.Instance.GetAlive(SpecialActivatedType.Rocket_RT);
+            ObjectPool.PooledObject left = ObjectPool.Instance.GetAlive(SpetialType.Rocket_LT);
+            ObjectPool.PooledObject right = ObjectPool.Instance.GetAlive(SpetialType.Rocket_RT);
             left.obj.transform.position = position;
             left.body.gravityScale = 0;
             left.body.velocity = Vector2.left * rocketSpeed;
@@ -336,13 +338,7 @@ public class TileMap : MonoBehaviour
                 Gizmos.color = new Color(0.1176471f, (i + j) % 2 == 0 ? 0.1019608f : 0.1419608f, .1960784f, .7843137f);
                 Gizmos.DrawCube(pos, Vector3.one);
 
-                System.Enum[] enums = new System.Enum[3];
-
-                enums[0] = currentLevel.tiles[index].Background();
-                enums[1] = currentLevel.tiles[index].Main();
-                enums[2] = currentLevel.tiles[index].Blocked();
-
-                foreach (var e in enums)
+                foreach (var e in currentLevel.tiles[index].GetfTypes())
                 {
                     TileType tile;
                     if (gizmos.TryGetValue(e, out tile))
