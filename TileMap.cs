@@ -118,7 +118,6 @@ public class TileMap : MonoBehaviour
 
         tiles = new Tile[width, height];
 
-        List<int> types = Enumerable.Range(0, ObjectPool.Instance.alive.sprites.Length).Select((index) => index).ToList();
         for (Byte i = 0; i < width; i++)
             for (Byte j = 0; j < height; j++)
             {
@@ -270,31 +269,39 @@ public class TileMap : MonoBehaviour
 
     public void SpawnDead(LevelGrid.Tile tileType, Vector2 position)
     {
-        const float rocketSpeed = 15f;
-        if (tileType.Main() == Goals.type)
+        
+        var main = tileType.Main();
+        if (main != BasicTileType.None)
         {
-            ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(tileType.Main());
-            dead.obj.transform.position = position;
-            var toGoal = (Vector2)(goal.position) - position;
-            dead.anim.SetTrigger("Dead");
-            dead.body.gravityScale = 0;
-            dead.body.velocity = toGoal * 2.5f; //, ForceMode2D.Impulse );
-        }
-        else 
-        {
-            ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(tileType.Main());
-            dead.obj.transform.position = position;
-            var x = UnityEngine.Random.Range(-1f, 1f);
-            var y = UnityEngine.Random.Range(0.1f, 1f);
-            dead.body.gravityScale = 1;
-            dead.body.velocity = new Vector2(x, y) * 5; //, ForceMode2D.Impulse);
-            dead.anim.SetTrigger("Dead");
+            
+            if (main == Goals.type)
+            {
+                ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(tileType.Main());
+                dead.obj.transform.position = position;
+                var toGoal = (Vector2)(goal.position) - position;
+                dead.anim.SetTrigger("Dead");
+                dead.body.gravityScale = 0;
+                dead.body.velocity = toGoal * 2.5f; //, ForceMode2D.Impulse );
+            }
+            else
+            {
+                ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(main);
+                dead.obj.transform.position = position;
+                var x = UnityEngine.Random.Range(-1f, 1f);
+                var y = UnityEngine.Random.Range(0.1f, 1f);
+                dead.body.gravityScale = 1;
+                dead.body.velocity = new Vector2(x, y) * 5; //, ForceMode2D.Impulse);
+                dead.anim.SetTrigger("Dead");
+            }
+            return;
         }
         
-        if (tileType.Spetial() == SpetialType.Rocket_V)
+        const float rocketSpeed = 10f;
+        var spetial = tileType.Spetial();
+        if (spetial == SpetialType.Rocket_V)
         {
-            ObjectPool.PooledObject up = ObjectPool.Instance.GetAlive(SpetialType.Rocket_UP);
-            ObjectPool.PooledObject down = ObjectPool.Instance.GetAlive(SpetialType.Rocket_DN);
+            ObjectPool.PooledObject up = ObjectPool.Instance.GetSpecialActivated(SpetialType.Rocket_UP);
+            ObjectPool.PooledObject down = ObjectPool.Instance.GetSpecialActivated(SpetialType.Rocket_DN);
 
             up.obj.transform.position = position;
             up.body.gravityScale = 0;
@@ -303,10 +310,10 @@ public class TileMap : MonoBehaviour
             down.body.gravityScale = 0;
             down.body.velocity = Vector2.down * rocketSpeed;
         }
-        else if (tileType.Spetial() == SpetialType.Rocket_H)
+        else if (spetial == SpetialType.Rocket_H)
         {
-            ObjectPool.PooledObject left = ObjectPool.Instance.GetAlive(SpetialType.Rocket_LT);
-            ObjectPool.PooledObject right = ObjectPool.Instance.GetAlive(SpetialType.Rocket_RT);
+            ObjectPool.PooledObject left = ObjectPool.Instance.GetSpecialActivated(SpetialType.Rocket_LT);
+            ObjectPool.PooledObject right = ObjectPool.Instance.GetSpecialActivated(SpetialType.Rocket_RT);
             left.obj.transform.position = position;
             left.body.gravityScale = 0;
             left.body.velocity = Vector2.left * rocketSpeed;

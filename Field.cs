@@ -500,42 +500,6 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
         }
         yield return until;
     }
-    private IEnumerator DropAndReplaceWithNew(Byte x, Byte fromY)
-    {
-        var pause = new WaitForSeconds(0.03f);
-        List<Coroutine> animations = new List<Coroutine>();
-        int destroyedCount = 0;
-
-        for (Byte y = fromY; y < tileMap.height; y++)
-        {
-            Tile tile = tileMap.GetTile(x, y);
-            if (tile.content == null)
-            {
-                destroyedCount++;
-            }
-            else if (destroyedCount > 0)
-            {
-                Tile bottom = tileMap.GetTile(x, (Byte)(y - destroyedCount));
-                animations.Add(tile.DropTo(bottom));
-            }
-            yield return pause;
-        }
-
-        for (int i = 0; i < destroyedCount; i++)
-        {
-            var position = new TileMap.Cell(x, (Byte)(tileMap.height - destroyedCount + i));
-            var offset = new Vector2(0, destroyedCount);
-            bool dropped = true;
-            animations.Add(tileMap.Create(position, offset, dropped));
-            yield return pause;
-        }
-
-        // Wait for all animations are done
-        foreach (Coroutine animation in animations)
-        {
-            yield return animation;
-        }
-    }
 
     public void ShowSelection(Vector3 position)
     {

@@ -243,6 +243,10 @@ public class LevelEditorTool : EditorTool, IDrawSelectedHandles
         LevelEditorHelper.Init(target as TileMap);
     }
 
+    private void OnDisable()
+    {
+        LevelEditorHelper.Reset();
+    }
 
     public override void OnToolGUI(EditorWindow window)
     {

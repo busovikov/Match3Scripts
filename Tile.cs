@@ -14,6 +14,25 @@ public class Tile : MonoBehaviour
     public LevelGrid.Tile tileType;
     private bool invalid = false;
 
+    #region Drop counter
+    public class ScopedCounter : IDisposable
+    {
+        private Tile t;
+
+        public ScopedCounter(Tile tile)
+        {
+            t = tile;
+            t.dropCount++;
+        }
+
+        public void Dispose()
+        {
+            t.dropCount--;
+        }
+    }
+    private int dropCount = 0;
+    #endregion
+
     public Tile up, down, left, right;
 
     public delegate void InteractBackgroundHandler(Tile sender, TileMap.BackgroundTileType type);
@@ -78,6 +97,7 @@ public class Tile : MonoBehaviour
     {
         engulfed += tile.OnEngulfed;
         toEngulf[index] = tile.Detach();
+        tile.tileType.SetMain(TileMap.BasicTileType.None);
         tile.Invalid = true;
     }
     public Coroutine Engulf()
@@ -225,7 +245,6 @@ public class Tile : MonoBehaviour
         }
         StopCoroutine(SyncContent());
         var tmp = content;
-        tileType.SetMain(TileMap.BasicTileType.None);
         content.transform.SetParent(null);
         content = null;
         return tmp;
@@ -233,9 +252,8 @@ public class Tile : MonoBehaviour
     public void DestroyContent()
     {
         var blocked = tileType.Blocked();
-        if (blocked == TileMap.BlockedTileType.Unblocked || blockedLevel == 0)
+        if (blocked == TileMap.BlockedTileType.Unblocked)
         {
-            tileType.SetBlocked(TileMap.BlockedTileType.Unblocked);
             GameObject obj = Detach();
             if (obj != null)
             {
@@ -243,6 +261,7 @@ public class Tile : MonoBehaviour
                 {
                     contentDeleted(this, tileType);
                 }
+                tileType.SetMain(TileMap.BasicTileType.None);
                 obj.SetActive(false);
             }
             if (backgroundInteracted != null)
@@ -250,12 +269,15 @@ public class Tile : MonoBehaviour
                 backgroundInteracted(this, tileType.Background());
             }
         }
-        else
+        else if (blocked != TileMap.BlockedTileType.Transparent)
         {
-            blockedLevel--;
             if (blockedInteracted != null)
             {
                 blockedInteracted(this, blocked);
+            }
+            if (blockedLevel-- == 0)
+            {
+                tileType.SetBlocked(TileMap.BlockedTileType.Unblocked);
             }
         }
     }
@@ -266,31 +288,35 @@ public class Tile : MonoBehaviour
     }
     public Coroutine DropTo(Tile tileToDrop)
     {
-        if (!IsFallable())
+        using (var counter = new ScopedCounter(tileToDrop))
         {
-            if (left != null && left.IsFallable())
+            if (tileToDrop.dropCount < 2 && (!IsFallable() || up != null && !up.IsFallable()))
             {
-                return left.DropTo(tileToDrop);
+                Coroutine res = null;
+                if (left != null && left.IsFallable())
+                {
+                    res = left.DropTo(tileToDrop);
+                }
+                if (res == null && right != null && right.IsFallable())
+                {
+                    res = right.DropTo(tileToDrop);
+                }
+                return res;
             }
-            if (right != null && right.IsFallable())
+
+            if (content != null)
             {
-                return right.DropTo(tileToDrop);
+                StopCoroutine(SyncContent());
+                tileToDrop.StopCoroutine(SyncContent());
+                tileToDrop.Invalid = true;
+                tileToDrop.content = content;
+                tileToDrop.tileType = tileType;
+                tileToDrop.content.transform.SetParent(tileToDrop.container.transform);
+
+                content = null;
+                tileType.SetMain(TileMap.BasicTileType.None);
+                return StartCoroutine(tileToDrop.SyncContent(true));
             }
-            return null;
-        }
-
-        if (content != null)
-        {
-            StopCoroutine(SyncContent());
-            tileToDrop.StopCoroutine(SyncContent());
-            tileToDrop.Invalid = true;
-            tileToDrop.content = content;
-            tileToDrop.tileType = tileType;
-            tileToDrop.content.transform.SetParent(tileToDrop.container.transform);
-
-            content = null;
-            tileType.SetMain(TileMap.BasicTileType.None);
-            return StartCoroutine(tileToDrop.SyncContent(true));
         }
         return null;
     }

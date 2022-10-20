@@ -29,7 +29,6 @@ public class ObjectPool : MonoBehaviour
         GameObject Prefab { get; }
         int Index { set; get; }
         int Amount { get; }
-        Sprite GetSprite(int i);
 
         void Init();
     }
@@ -42,20 +41,12 @@ public class ObjectPool : MonoBehaviour
 
         [SerializeField]
         public int Amount { get => amount; }
-        public Sprite[] sprites;
         public GameObject prefab;
         public int Index { set; get; }
 
         public IList<PooledObject> Pool => pool;
 
         public GameObject Prefab => prefab;
-
-        public Sprite GetSprite(int i)
-        {
-            if (i < 0 || i >= sprites.Length)
-                return null;
-            return sprites[i];
-        }
 
         public void Init()
         {
@@ -66,8 +57,6 @@ public class ObjectPool : MonoBehaviour
 
     public Pooled dead;
     public Pooled alive;
-    public Pooled blocked;
-    public Pooled special;
     public Pooled specialActivated;
 
     void Awake()
@@ -87,6 +76,8 @@ public class ObjectPool : MonoBehaviour
     void Start()
     {
         InitPool(dead);
+        InitPool(alive);
+        InitPool(specialActivated);
         loadTextures();
     }
 
@@ -111,7 +102,7 @@ public class ObjectPool : MonoBehaviour
                     textures[o] = Sprite.Create(tex1, new Rect(0, 0, tex1.width, tex1.height), new Vector2(.5f, .5f), 512f);
                 }
                 if (tex2 != null)
-                    texturesDestroyed[o] = Sprite.Create(tex2, new Rect(0, 0, tex2.width, tex2.height), new Vector2(.5f, .5f));
+                    texturesDestroyed[o] = Sprite.Create(tex2, new Rect(0, 0, tex2.width, tex2.height), new Vector2(.5f, .5f), 512f);
             }
         }
     }
@@ -189,6 +180,19 @@ public class ObjectPool : MonoBehaviour
         o.obj.SetActive(true);
         return o;
     }
+
+    public PooledObject GetSpecialActivated(System.Enum type)
+    {
+        PooledObject o = Get(specialActivated);
+        
+        Sprite s = null;
+        textures.TryGetValue(type, out s);
+        o.spriteRenderer.sprite = s;
+
+        o.obj.SetActive(true);
+        return o;
+    }
+
     /*
     public PooledObject GetDead(int type)
     {

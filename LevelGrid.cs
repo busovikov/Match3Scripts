@@ -29,7 +29,7 @@ public class LevelGrid : ScriptableObject
         public TileMap.BlockedTileType Blocked() { return (TileMap.BlockedTileType)blocked; }
         public TileMap.BackgroundTileType Background() { return (TileMap.BackgroundTileType)background; }
 
-        public void SetMain (System.Enum t) { main = (byte)(TileMap.BasicTileType)t; }
+        public void SetMain (System.Enum t) { main = (byte)(TileMap.BasicTileType)t; spetial = false; }
         public void SetSpetial(System.Enum t) { main = (byte)(TileMap.SpetialType)t; spetial = true; }
         public void SetBlocked (System.Enum t) { blocked = (byte)(TileMap.BlockedTileType)t; }
         public void SetBackground (System.Enum t) { background = (byte)(TileMap.BackgroundTileType)t; }
