@@ -52,6 +52,7 @@ namespace Assets.Scripts.Editor
             LoadTileSets();
             target.currentLevel = GetSelectedLevel();
             target.gizmos = gizmos;
+            target.UpdateSize();
             initialized = true;
         }
         public static void SetTileDirty(System.Type t)

@@ -60,7 +60,7 @@ public class LevelEditor : Editor
         using (new GUILayout.VerticalScope(EditorStyles.helpBox))
         {
             TileMap tm = target as TileMap;
-
+            
             if (tm.currentLevel == null)
                 return;
 
@@ -68,8 +68,12 @@ public class LevelEditor : Editor
             bool widthChanged = tm.currentLevel.SetWidth((byte)EditorGUILayout.IntField("Width", tm.currentLevel.width));
             bool heightChanged = tm.currentLevel.SetHeight((byte)EditorGUILayout.IntField("Height", tm.currentLevel.height));
 
+
             if (nameChanged || widthChanged || heightChanged)
+            {
+                tm.UpdateSize();
                 LevelEditorHelper.levelsDirty = true;
+            }
         }
     }
 
@@ -120,6 +124,7 @@ public class LevelEditor : Editor
         {
             LevelEditorHelper.selectedLevel = level;
             tm.currentLevel = LevelEditorHelper.GetSelectedLevel();
+            tm.UpdateSize();
         }
         GUILayout.EndScrollView();
     }

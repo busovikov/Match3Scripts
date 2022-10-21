@@ -123,8 +123,8 @@ public class Match
 
     public bool SwapsAvailable()
     {
-        for (Byte x = 0; x < tiles.width; x++)
-            for (Byte y = 0; y < tiles.height; y++)
+        for (Byte x = 0; x < tiles.levelGrid.width; x++)
+            for (Byte y = 0; y < tiles.levelGrid.height; y++)
             {
                 Vector2 position = new Vector2(x, y);
                 TileMap.Cell tmp;
@@ -219,8 +219,8 @@ public class Match
     private void InitSets()
     {
         setX = new Interval(Interval.Orientation.Horizontal);
-        setY = new Interval[tiles.width];
-        for (int i = 0; i < tiles.width; i++)
+        setY = new Interval[tiles.levelGrid.width];
+        for (int i = 0; i < tiles.levelGrid.width; i++)
         {
             setY[i] = new Interval(Interval.Orientation.Vertical);
         }
@@ -229,13 +229,13 @@ public class Match
     public bool IsAny(out DestructableTiles destructableTiles)
     {
         destructableTiles = new DestructableTiles(Byte.MaxValue, Byte.MaxValue, 0);
-        for (Byte y = 0; y < tiles.height; y++)
+        for (Byte y = 0; y < tiles.levelGrid.height; y++)
         {
-            for (Byte x = 0; x < tiles.width; x++)
+            for (Byte x = 0; x < tiles.levelGrid.width; x++)
             {
                 StackOn(x, y, ref setX, destructableTiles);
                 StackOn(x, y, ref setY[x], destructableTiles);
-                if (y == tiles.height - 1)
+                if (y == tiles.levelGrid.height - 1)
                 {
                     Sink(ref setY[x], destructableTiles);
                 }

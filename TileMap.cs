@@ -7,14 +7,16 @@ using Unity.Mathematics;
 
 public class TileMap : MonoBehaviour
 {
+    [HideInInspector]
+    public BoxCollider2D colliderCache;
 
 #if UNITY_EDITOR
     public TileType currentTile;
     public LevelGrid currentLevel;
     public Dictionary<System.Enum, TileType> gizmos;
 #endif
-    public Byte width;
-    public Byte height;
+    public Vector2 size;
+    public Vector2 offset;
     public GameObject prefab;
     [SerializeField] Transform goal;
 
@@ -105,24 +107,37 @@ public class TileMap : MonoBehaviour
 
     void Awake()
     {
-
+        
     }
 
-    private void Start()
+    public void UpdateSize()
     {
-        SoundManager soundManager = FindObjectOfType<SoundManager>();
-        if (levelGrid == null)
+        if (currentLevel == null)
             return;
-        width = levelGrid.width;
-        height = levelGrid.height;
+        size = new Vector2(currentLevel.width, currentLevel.height);
+        offset = size / 2 - Vector2.one / 2;
 
-        tiles = new Tile[width, height];
+        colliderCache = GetComponent<BoxCollider2D>();
+        colliderCache.size = size;
+    }
+    public void StartLevel()
+    {
+        if (levelGrid == null)
+        {
+            Debug.Log("Level Grid not set");
+            return;
+        }
+        SoundManager soundManager = FindObjectOfType<SoundManager>();
 
-        for (Byte i = 0; i < width; i++)
-            for (Byte j = 0; j < height; j++)
+        UpdateSize();
+
+        tiles = new Tile[levelGrid.width, levelGrid.height];
+
+        for (Byte i = 0; i < levelGrid.width; i++)
+            for (Byte j = 0; j < levelGrid.height; j++)
             {
-                var tileType = levelGrid.tiles[i + j * width];
-                var position = new Vector3(i, j, 0) + transform.position;
+                var tileType = levelGrid.tiles[i + j * levelGrid.width];
+                var position = new Vector2(i, j) + (Vector2)transform.position - offset;
                 Tile tile = GameObject.Instantiate(prefab, position, Quaternion.identity, transform).GetComponent<Tile>();
                 tile.gameObject.name = position.ToString();
 
@@ -140,6 +155,14 @@ public class TileMap : MonoBehaviour
                 tile.contentDeleted += OnTileDeleted;
                 tile.contentDeleted += soundManager.OnTileDeleted;
             }
+    }
+
+    private void Start()
+    {
+        
+        
+
+        
     }
 
     bool SkipTile(Tile t)
@@ -237,6 +260,84 @@ public class TileMap : MonoBehaviour
         tile.placeHolder.SetActive(main != BasicTileType.None || spetial != SpetialType.None || blocked != BlockedTileType.Unblocked && blocked != BlockedTileType.Transparent);
     }
 
+    public IEnumerator Reshuffle()
+    {
+        int shuffeling = 0;
+        var until = new WaitUntil(() => shuffeling == 0);
+        List<int> axis_y = Enumerable.Range(0, levelGrid.height + 1).Select((index) => index - 1).ToList();
+        List<List<int>> remainingPositions = new List<List<int>>();
+
+        for (int i = 0; i < levelGrid.width; i++)
+        {
+            axis_y[0] = i;
+            remainingPositions.Add(new List<int>(axis_y));
+        }
+
+        Byte swap_x = 0;
+        Byte swap_y = 0;
+        bool swap = false;
+
+        for (int i = 0; i < levelGrid.width * levelGrid.height; i++)
+        {
+            int index_x = UnityEngine.Random.Range(0, remainingPositions.Count);
+            int index_y = UnityEngine.Random.Range(1, remainingPositions[index_x].Count);
+            Byte new_y = (Byte)remainingPositions[index_x][index_y];
+            Byte new_x = (Byte)remainingPositions[index_x][0];
+            remainingPositions[index_x].RemoveAt(index_y);
+            if (remainingPositions[index_x].Count == 1)
+            {
+                remainingPositions.RemoveAt(index_x);
+            }
+
+            if (swap)
+            {
+                shuffeling++;
+                if (!GetTile(swap_x, swap_y).ExchangeWith(GetTile(new_x, new_y), () => { shuffeling--; }))
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                swap_x = new_x;
+                swap_y = new_y;
+            }
+
+            swap = !swap;
+        }
+        yield return until;
+    }
+
+    public Match.DestructableTiles GetIntervalRow(TileMap.Cell position)
+    {
+        if (!IsValid(position))
+            return null;
+
+        Match.DestructableTiles row = new Match.DestructableTiles(0, (Byte)position.y, (Byte)(levelGrid.width - 1));
+        Match.Interval interval = new Match.Interval(Match.Interval.Orientation.Horizontal);
+        interval.cell.x = 0;
+        interval.cell.y = (Byte)position.y;
+        interval.count = (Byte)levelGrid.width;
+        row.destructionList.Add(interval);
+
+        return row;
+    }
+
+    public Match.DestructableTiles GetIntervalColumn(TileMap.Cell position)
+    {
+        if (!IsValid(position))
+            return null;
+
+        Match.DestructableTiles column = new Match.DestructableTiles((Byte)position.x, 0, (Byte)position.x);
+        Match.Interval interval = new Match.Interval(Match.Interval.Orientation.Vertical);
+        interval.cell.x = (Byte)position.x;
+        interval.cell.y = 0;
+        interval.count = (Byte)levelGrid.height;
+        column.destructionList.Add(interval);
+
+        return column;
+    }
+
     public Tile GetTile(Cell position)
     {
         return GetTile(position.x, position.y);
@@ -263,7 +364,7 @@ public class TileMap : MonoBehaviour
 
     public bool IsValid(Byte x, Byte y)
     {
-        bool withInBoundaries = y < height && x < width;
+        bool withInBoundaries = y < levelGrid.height && x < levelGrid.width;
         return withInBoundaries && tiles != null && tiles[x, y] != null && !tiles[x, y].Invalid && tiles[x, y].IsSet();
     }
 
@@ -330,15 +431,18 @@ public class TileMap : MonoBehaviour
     {
         if (currentLevel == null || currentLevel.tiles == null || gizmos == null)
             return;
-        
-        var position = transform.position - Vector3.one * 0.5f;
+
+        var _size = new Vector2(currentLevel.width, currentLevel.height);
+        Vector3 _offset = _size / 2 - Vector2.one / 2;
+
+        var position = transform.position - _offset;
         Rect rect = new Rect(position.x, position.y, currentLevel.width, currentLevel.height);
 
         for (byte i = 0; i < currentLevel.width; ++i)
             for (byte j = 0; j < currentLevel.height; ++j)
             {
                 int index = i + currentLevel.width * j;
-                Vector3 pos = new Vector3(i, j) + transform.position;
+                Vector3 pos = new Vector3(i, j) + position;
                 int x = (int)math.round(pos.x);
                 int y = (int)math.round(pos.y);
 
