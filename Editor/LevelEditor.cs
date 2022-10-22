@@ -262,7 +262,7 @@ public class LevelEditorTool : EditorTool, IDrawSelectedHandles
             return;
 
         TileMap tileMap = target as TileMap;
-        Vector3 position = tileMap.transform.position - Vector3.one * 0.5f;
+        Vector2 position = (Vector2)tileMap.transform.position - tileMap.offset - Vector2.one * .5f;
 
         Handles.BeginGUI();
         GUILayout.FlexibleSpace();
@@ -285,6 +285,9 @@ public class LevelEditorTool : EditorTool, IDrawSelectedHandles
         Vector3 mousePosition = Event.current.mousePosition;
         Ray ray = HandleUtility.GUIPointToWorldRay(mousePosition);
         mousePosition = ray.origin;
+            
+        //Debug.Log(new Rect(position.x, position.y, tileMap.currentLevel.width, tileMap.currentLevel.height));
+        //Debug.Log(mousePosition);
 
         bool controlPressed = Event.current.modifiers == EventModifiers.Control;
 
@@ -398,15 +401,14 @@ public class LevelEditorTool : EditorTool, IDrawSelectedHandles
         LoadTiles();
     }
 
-    private void CheckTile(Vector3 mousePosition, TileMap tileMap, bool erase = false)
+    private void CheckTile(Vector2 mousePosition, TileMap tileMap, bool erase = false)
     {
         if (tileMap.currentLevel == null)
             return;
 
-        Vector2 pos = mousePosition - tileMap.transform.position;
-        int x = (int)math.round(pos.x);
-        int y = (int)math.round(pos.y);
-
+        Vector2 pos = mousePosition - (Vector2)tileMap.transform.position + tileMap.offset + Vector2.one * .5f;
+        int x = (int)(pos.x);
+        int y = (int)(pos.y);
         var tile = tileMap.currentTile;
         if (tile != null)
         {
