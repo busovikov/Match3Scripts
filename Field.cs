@@ -366,6 +366,7 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
 
         comboCount++;
         Dictionary<TileMap.Cell, Byte> specialCount = new Dictionary<TileMap.Cell, Byte>();
+        List<Coroutine> Animations = new List<Coroutine>();
         Byte destroyed = 0;
         foreach (Match.Interval interval in destroy.destructionList)
         {
@@ -408,20 +409,19 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
                     specialCount[specialPos] += interval.count;
                 }
 
-                specialTile.Engulf();
+                Animations.Add( specialTile.Engulf());
             }
         }
 
 
-        List<Coroutine> engulfAll = new List<Coroutine>();
+        
         foreach (var specialPair in specialCount)
         {
-            Debug.Log("Spetial score: " + specialPair.Value);
-            engulfAll.Add( tileMap.CreateSpecial(specialPair.Key, (TileMap.SpetialType)(specialPair.Value - 3))); // can not go lower than 0
+            Animations.Add( tileMap.CreateSpecial(specialPair.Key, (TileMap.SpetialType)(specialPair.Value - 3))); // can not go lower than 0
         }
-        foreach (Coroutine dropTask in engulfAll)
+        foreach (Coroutine animation in Animations)
         {
-            yield return engulfAll;
+            yield return animation;
         }
 
         if (destroyed > 0)

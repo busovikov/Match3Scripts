@@ -152,6 +152,7 @@ public class TileMap : MonoBehaviour
                 tile.upIsEmpty += OnUpIsEmpty;
                 tile.backgroundInteracted += OnBackgroundInteract;
                 tile.blockedInteracted += OnBlockedInteract;
+                tile.spetialInteracted += OnSpetialActivated;
                 tile.contentDeleted += OnTileDeleted;
                 tile.contentDeleted += soundManager.OnTileDeleted;
             }
@@ -188,9 +189,45 @@ public class TileMap : MonoBehaviour
             break;
         }
     }
-    void OnTileDeleted(Tile sender, LevelGrid.Tile type)
+
+    void OnSpetialActivated(Tile sender, SpetialType type)
     {
-        SpawnDead(type, sender.transform.position);
+        const float rocketSpeed = 15f;
+        var position = sender.container.transform.position;
+        if (type == SpetialType.Rocket_V)
+        {
+            ObjectPool.PooledObject up = ObjectPool.Instance.GetSpecialActivated(SpetialType.Rocket_UP);
+            ObjectPool.PooledObject down = ObjectPool.Instance.GetSpecialActivated(SpetialType.Rocket_DN);
+
+            up.obj.transform.position = position;
+            up.body.gravityScale = 0;
+            up.body.velocity = Vector2.up * rocketSpeed;
+            down.obj.transform.position = position;
+            down.body.gravityScale = 0;
+            down.body.velocity = Vector2.down * rocketSpeed;
+        }
+        else if (type == SpetialType.Rocket_H)
+        {
+            ObjectPool.PooledObject left = ObjectPool.Instance.GetSpecialActivated(SpetialType.Rocket_LT);
+            ObjectPool.PooledObject right = ObjectPool.Instance.GetSpecialActivated(SpetialType.Rocket_RT);
+            left.obj.transform.position = position;
+            left.body.gravityScale = 0;
+            left.body.velocity = Vector2.left * rocketSpeed;
+            right.obj.transform.position = position;
+            right.body.gravityScale = 0;
+            right.body.velocity = Vector2.right * rocketSpeed;
+        }
+    }
+
+    void OnTileDeleted(Tile sender, BasicTileType type)
+    {
+        ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(type);
+        dead.obj.transform.position = sender.container.transform.position;
+        var x = UnityEngine.Random.Range(-1f, 1f);
+        var y = UnityEngine.Random.Range(0.1f, 1f);
+        dead.body.gravityScale = 1;
+        dead.body.velocity = new Vector2(x, y) * 5; //, ForceMode2D.Impulse);
+        dead.anim.SetTrigger("Dead");
     }
 
     void OnBlockedInteract(Tile sender, BlockedTileType type)
@@ -366,63 +403,6 @@ public class TileMap : MonoBehaviour
     {
         bool withInBoundaries = y < levelGrid.height && x < levelGrid.width;
         return withInBoundaries && tiles != null && tiles[x, y] != null && !tiles[x, y].Invalid && tiles[x, y].IsSet();
-    }
-
-    public void SpawnDead(LevelGrid.Tile tileType, Vector2 position)
-    {
-        
-        var main = tileType.Main();
-        if (main != BasicTileType.None)
-        {
-            
-            if (main == Goals.type)
-            {
-                ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(tileType.Main());
-                dead.obj.transform.position = position;
-                var toGoal = (Vector2)(goal.position) - position;
-                dead.anim.SetTrigger("Dead");
-                dead.body.gravityScale = 0;
-                dead.body.velocity = toGoal * 2.5f; //, ForceMode2D.Impulse );
-            }
-            else
-            {
-                ObjectPool.PooledObject dead = ObjectPool.Instance.GetDead(main);
-                dead.obj.transform.position = position;
-                var x = UnityEngine.Random.Range(-1f, 1f);
-                var y = UnityEngine.Random.Range(0.1f, 1f);
-                dead.body.gravityScale = 1;
-                dead.body.velocity = new Vector2(x, y) * 5; //, ForceMode2D.Impulse);
-                dead.anim.SetTrigger("Dead");
-            }
-            return;
-        }
-        
-        const float rocketSpeed = 10f;
-        var spetial = tileType.Spetial();
-        if (spetial == SpetialType.Rocket_V)
-        {
-            ObjectPool.PooledObject up = ObjectPool.Instance.GetSpecialActivated(SpetialType.Rocket_UP);
-            ObjectPool.PooledObject down = ObjectPool.Instance.GetSpecialActivated(SpetialType.Rocket_DN);
-
-            up.obj.transform.position = position;
-            up.body.gravityScale = 0;
-            up.body.velocity = Vector2.up * rocketSpeed;
-            down.obj.transform.position = position;
-            down.body.gravityScale = 0;
-            down.body.velocity = Vector2.down * rocketSpeed;
-        }
-        else if (spetial == SpetialType.Rocket_H)
-        {
-            ObjectPool.PooledObject left = ObjectPool.Instance.GetSpecialActivated(SpetialType.Rocket_LT);
-            ObjectPool.PooledObject right = ObjectPool.Instance.GetSpecialActivated(SpetialType.Rocket_RT);
-            left.obj.transform.position = position;
-            left.body.gravityScale = 0;
-            left.body.velocity = Vector2.left * rocketSpeed;
-            right.obj.transform.position = position;
-            right.body.gravityScale = 0;
-            right.body.velocity = Vector2.right * rocketSpeed;
-        }
-
     }
 
 

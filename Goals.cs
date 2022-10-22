@@ -13,6 +13,8 @@ public class Goals : MonoBehaviour
 
     [HideInInspector]
     public static TileMap.BasicTileType type;
+    [HideInInspector]
+    public static Goals goals;
     private Animator animator;
     private LevelLoader.GameMode gameMode;
     private int goal = 9;
@@ -24,6 +26,7 @@ public class Goals : MonoBehaviour
     {
         var t = UnityEngine.Random.Range(0, (int)TileMap.BasicTileType.TypeSize);
         type = (TileMap.BasicTileType)t;
+        goals = this;
         GetComponent<Image>().sprite = images[t];
         animator = GetComponent<Animator>();
     }
@@ -53,10 +56,27 @@ public class Goals : MonoBehaviour
         
     }
 
-    private void OnCollisionEnter2D(Collision2D collision)
+    public IEnumerator ToGoal(GameObject obj)
+    {
+        float elapsed = 0f;
+        float duration = 0.75f;
+        var InitialOffset = obj.transform.position;
+
+        while (elapsed < duration)
+        {
+            obj.transform.position = Vector2.Lerp(InitialOffset, transform.position, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        obj.transform.position = transform.position;
+        obj.SetActive(false);
+    }
+
+    public void Add(GameObject gameObject)
     {
         animator.SetTrigger("Add");
-        collision.gameObject.SetActive(false);
+        gameObject.SetActive(false);
         goal--;
         if (goal > 0)
         {

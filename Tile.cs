@@ -37,16 +37,18 @@ public class Tile : MonoBehaviour
 
     public delegate void InteractBackgroundHandler(Tile sender, TileMap.BackgroundTileType type);
     public delegate void InteractBlockedHandler(Tile sender, TileMap.BlockedTileType type);
-    public delegate void DeleteTileHandler(Tile sender, LevelGrid.Tile type);
+    public delegate void DeleteTileHandler(Tile sender, TileMap.BasicTileType type);
+    public delegate void InteractSpetialHandler(Tile sender, TileMap.SpetialType type);
 
     public event InteractBackgroundHandler backgroundInteracted;
     public event InteractBlockedHandler blockedInteracted;
+    public event InteractSpetialHandler spetialInteracted;
     public event DeleteTileHandler contentDeleted;
 
     public delegate void UpIsEmptyHandler(Tile sender);
     public event UpIsEmptyHandler upIsEmpty;
-    public delegate void Engulfed();
-    public event Engulfed engulfed;
+    public delegate void Processed();
+    public event Processed processed;
 
     private Animator animator;
     private int blockedLevel;
@@ -89,13 +91,13 @@ public class Tile : MonoBehaviour
         }
     }
 
-    public void OnEngulfed()
+    public void OnProcessed()
     {
         Invalid = false;
     }
     public void ToEngulf(Byte index, Tile tile)
     {
-        engulfed += tile.OnEngulfed;
+        processed += tile.OnProcessed;
         toEngulf[index] = tile.Detach();
         tile.tileType.SetMain(TileMap.BasicTileType.None);
         tile.Invalid = true;
@@ -108,7 +110,7 @@ public class Tile : MonoBehaviour
     public IEnumerator SyncContents()
     {
         float elapsed = 0f;
-        float duration = 0.35f;
+        float duration = 0.2f;
         GameObject[] contents = (GameObject[])toEngulf.Clone();
         toEngulf = null;
         Vector3[] InitialOffset = new Vector3[contents.Length];
@@ -150,8 +152,8 @@ public class Tile : MonoBehaviour
                 contents[i].SetActive(false);
             }
         }
-        engulfed?.Invoke();
-        engulfed = null;
+        processed?.Invoke();
+        processed = null;
         //renderer.sortingOrder--;
     }
 
@@ -197,10 +199,13 @@ public class Tile : MonoBehaviour
     {
         return content != null && container.transform.position == content.transform.position;
     }
+
+    
+
     public IEnumerator SyncContent(bool dropped = false)
     {
         float elapsed = 0f;
-        float duration = 0.2f;
+        float duration = 0.15f;
         var InitialOffset = content.transform.position;
 
         while (elapsed < duration && content != null)
@@ -247,22 +252,50 @@ public class Tile : MonoBehaviour
         var tmp = content;
         content.transform.SetParent(null);
         content = null;
+        tileType.SetMain(TileMap.BasicTileType.None);
         return tmp;
+    }
+
+    IEnumerator DelayDrop(float t)
+    {
+        Invalid = true;
+        yield return new WaitForSeconds(t);
+        OnProcessed();
     }
     public void DestroyContent()
     {
         var blocked = tileType.Blocked();
+        var main = tileType.Main();
+        var spetial = tileType.Spetial();
         if (blocked == TileMap.BlockedTileType.Unblocked)
         {
             GameObject obj = Detach();
             if (obj != null)
             {
-                if (contentDeleted != null)
+                if (main != TileMap.BasicTileType.None)
                 {
-                    contentDeleted(this, tileType);
+                    if (main == Goals.type)
+                    {
+                        StartCoroutine(Goals.goals.ToGoal(obj));
+                    }
+                    else
+                    {
+                        obj.SetActive(false);
+                        if (contentDeleted != null)
+                        {
+                            contentDeleted(this, main);
+                        }
+                    }
                 }
-                tileType.SetMain(TileMap.BasicTileType.None);
-                obj.SetActive(false);
+                else if (spetial != TileMap.SpetialType.None)
+                {
+                    obj.SetActive(false);
+                    if (spetialInteracted != null)
+                    {
+                        spetialInteracted(this, spetial);
+                    }
+                }
+                StartCoroutine(DelayDrop(.2f));
             }
             if (backgroundInteracted != null)
             {
@@ -290,21 +323,10 @@ public class Tile : MonoBehaviour
     {
         using (var counter = new ScopedCounter(tileToDrop))
         {
-            if (tileToDrop.dropCount < 2 && (!IsFallable() || up != null && !up.IsFallable()))
-            {
-                Coroutine res = null;
-                if (left != null && left.IsFallable())
-                {
-                    res = left.DropTo(tileToDrop);
-                }
-                if (res == null && right != null && right.IsFallable())
-                {
-                    res = right.DropTo(tileToDrop);
-                }
-                return res;
-            }
+            if (tileToDrop.dropCount > 2)
+                return null;
 
-            if (content != null)
+            if (content != null && !Invalid )
             {
                 StopCoroutine(SyncContent());
                 tileToDrop.StopCoroutine(SyncContent());
@@ -316,6 +338,20 @@ public class Tile : MonoBehaviour
                 content = null;
                 tileType.SetMain(TileMap.BasicTileType.None);
                 return StartCoroutine(tileToDrop.SyncContent(true));
+            }
+
+            if(IsFallable() == false || up != null && up.IsFallable() == false)
+            {
+                Coroutine res = null;
+                if (left != null)
+                {
+                    res = left.DropTo(tileToDrop);
+                }
+                if (res == null && right != null)
+                {
+                    res = right.DropTo(tileToDrop);
+                }
+                return res;
             }
         }
         return null;
@@ -380,6 +416,7 @@ public class Tile : MonoBehaviour
         content = pooledObj.obj;
         content.GetComponent<SpriteRenderer>().sortingOrder++;
         content.transform.SetParent(container.transform);
+        
         animator.Play("Tile_Special", -1, 0);
         return StartCoroutine(WaitForAnimationDone());
     }
