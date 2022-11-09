@@ -133,13 +133,13 @@ public class TileMap : MonoBehaviour
 
         tiles = new Tile[levelGrid.width, levelGrid.height];
 
-        for (Byte i = 0; i < levelGrid.width; i++)
-            for (Byte j = 0; j < levelGrid.height; j++)
+        for (Byte j = 0; j < levelGrid.height; j++)
+            for (Byte i = 0; i < levelGrid.width; i++)
             {
                 var tileType = levelGrid.tiles[i + j * levelGrid.width];
                 var position = new Vector2(i, j) + (Vector2)transform.position - offset;
                 Tile tile = GameObject.Instantiate(prefab, position, Quaternion.identity, transform).GetComponent<Tile>();
-                tile.gameObject.name = position.ToString();
+                tile.gameObject.name = new Vector2(i, j).ToString();
 
                 tiles[i, j] = tile;
 
@@ -158,6 +158,12 @@ public class TileMap : MonoBehaviour
             }
     }
 
+    private void Update()
+    {
+        //for (Byte j = 0; j < levelGrid.height; j++)
+            //for (Byte i = 0; i < levelGrid.width; i++)
+                //GetTile(i, j).Drop();
+    }
     private void Start()
     {
         
@@ -192,7 +198,7 @@ public class TileMap : MonoBehaviour
 
     void OnSpetialActivated(Tile sender, SpetialType type)
     {
-        const float rocketSpeed = 15f;
+        const float rocketSpeed = 20f;
         var position = sender.container.transform.position;
         if (type == SpetialType.Rocket_V)
         {
@@ -240,10 +246,10 @@ public class TileMap : MonoBehaviour
         Debug.Log("BackGround: " + type.ToString());
     }
 
-    void OnUpIsEmpty(Tile sender)
+    void OnUpIsEmpty(Tile sender, int offset)
     {
         bool dropped = true;
-        Create(sender, Vector2.up, dropped);
+        Create(sender, Vector2.up * offset, dropped);
     }
     public Coroutine Create(Tile tile, Vector2 offset, bool dropped = false)
     {
@@ -294,7 +300,7 @@ public class TileMap : MonoBehaviour
         tile.CreateBlockedContent(t.Blocked(), 3, false);
         tile.CreateContent(main, dropped);
         tile.CreateContentSpecial(spetial);
-        tile.placeHolder.SetActive(main != BasicTileType.None || spetial != SpetialType.None || blocked != BlockedTileType.Unblocked && blocked != BlockedTileType.Transparent);
+        tile.placeHolder.gameObject.SetActive(main != BasicTileType.None || spetial != SpetialType.None || blocked != BlockedTileType.Unblocked && blocked != BlockedTileType.Transparent);
     }
 
     public IEnumerator Reshuffle()

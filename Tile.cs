@@ -6,13 +6,14 @@ using System;
 public class Tile : MonoBehaviour
 {
     [SerializeField]
-    public GameObject placeHolder;
+    public SpriteRenderer placeHolder;
     public GameObject container;
     public GameObject content;
     public GameObject blockedContent;
     public GameObject[] toEngulf;
     public LevelGrid.Tile tileType;
     private bool invalid = false;
+    private bool waiting = false;
 
     #region Drop counter
     public class ScopedCounter : IDisposable
@@ -35,6 +36,11 @@ public class Tile : MonoBehaviour
 
     public Tile up, down, left, right;
 
+    public bool LeftContent() { return left != null && left.Isbottom() && left.content != null; }
+    public bool LeftInvalid() { return left != null && (left.Invalid || left.waiting ); }
+    public bool RightContent() { return right != null && right.Isbottom() && right.content != null; }
+    public bool RightInvalid() { return right != null && (right.Invalid || right.waiting); }
+
     public delegate void InteractBackgroundHandler(Tile sender, TileMap.BackgroundTileType type);
     public delegate void InteractBlockedHandler(Tile sender, TileMap.BlockedTileType type);
     public delegate void DeleteTileHandler(Tile sender, TileMap.BasicTileType type);
@@ -45,7 +51,7 @@ public class Tile : MonoBehaviour
     public event InteractSpetialHandler spetialInteracted;
     public event DeleteTileHandler contentDeleted;
 
-    public delegate void UpIsEmptyHandler(Tile sender);
+    public delegate void UpIsEmptyHandler(Tile sender, int offset);
     public event UpIsEmptyHandler upIsEmpty;
     public delegate void Processed();
     public event Processed processed;
@@ -76,21 +82,116 @@ public class Tile : MonoBehaviour
         DestroyContent();
     }
 
-    private void Update()
+    private bool Isbottom()
     {
-        if (tileType.Blocked() == TileMap.BlockedTileType.Unblocked && Invalid == false && content == null)
+        return down == null || !down.IsFallable() || down.content != null;
+    }
+
+    private Tile Up(out int off)
+    {
+        off = 1;
+        var _up = up;
+        while (_up != null && _up.IsFallable())
         {
-            if (up != null)
+            off++;
+            if (_up.content != null && !Invalid)
             {
-                up.DropTo(this);
+                return _up;
             }
-            else 
+
+            _up = _up.up;
+        }
+        return _up;
+    }
+
+    private Tile Down()
+    {
+        var _down = down;
+        while (_down != null)
+        {
+            if (_down.Invalid == false && _down.content != null || !_down.IsFallable())
             {
-                upIsEmpty?.Invoke(this);
+                return _down.up;
             }
+            if (_down.down == null)
+                return _down;
+            _down = _down.down;
+        }
+        return _down;
+    }
+    public void Drop()
+    {
+        if (IsFallable() && content == null && !Invalid && Isbottom())
+        {
+            int offset;
+            var _up = Up(out offset);
+            //if (!_up.IsFallable())
+            //{
+            //    _up.down.placeHolder.color = Color.red;
+            //}
+            if (_up == null)
+            {
+                upIsEmpty?.Invoke(this, offset);
+            }
+            else if (!_up.Invalid && _up.content != null)
+            {
+                _up.DropTo(this);
+                
+                
+            }
+            else if (!_up.IsFallable())
+            {
+                do
+                {
+                    if (_up.LeftInvalid() || _up.RightInvalid())
+                    {
+                        //waiting = true;
+                        break;
+                    }
+                    //waiting = false;    
+                    if ( _up.LeftContent() || _up.RightContent())
+                    {
+                        if (!Drop(_up.left, _up.down)) 
+                        {
+                            if (Drop(_up.right, _up.down))
+                            {
+                                _up.right.Drop();
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            _up.left.Drop();
+                            break;
+                        }
+                        waiting = true;
+                    }
+                    else
+                    {
+                        _up = _up.down;
+                    }
+                }
+                while (_up != this && _up.down != null);
+                waiting = false;
+            }
+
+
         }
     }
 
+    bool Drop(Tile tile, Tile here)
+    {
+        if (tile != null && !tile.Invalid)
+        {
+            return tile.DropTo(here) != null;
+        }
+        return false;
+    }
+
+    private void Update()
+    {
+        Drop();//placeHolder.color = Invalid ? Color.red : new Color(138, 175, 255, 51);
+    }
     public void OnProcessed()
     {
         Invalid = false;
@@ -204,27 +305,35 @@ public class Tile : MonoBehaviour
 
     public IEnumerator SyncContent(bool dropped = false)
     {
+        
         float elapsed = 0f;
-        float duration = 0.15f;
         var InitialOffset = content.transform.position;
+        float duration = 0.18f + (InitialOffset - container.transform.position).magnitude / 50;
+        Debug.Log(name + " initial g" + InitialOffset + " l " + content.transform.localPosition);
 
         while (elapsed < duration && content != null)
         {
+            Debug.Log(name + " g " + content.transform.position + " l " + content.transform.localPosition);
+            Debug.Log(name + " g " + elapsed / duration);
             content.transform.position = Vector2.Lerp(InitialOffset, container.transform.position, elapsed / duration);
+            Debug.Log(name + " g " + content.transform.position + " l " + content.transform.localPosition);
             elapsed += Time.deltaTime;
             yield return null;
         }
         if (content == null)
         {
             Invalid = false;
+            waiting = false;
             yield break;
         }
         content.transform.position = container.transform.position;
 
         if (dropped)
         {
+            if(up != null && up.IsFallable())
+                up.waiting = true;
             Invalid = false;
-            //animator.enabled = true;
+            waiting = false;
             animator.Play("Tile_Droped", -1, 0);
         }
 
@@ -233,7 +342,7 @@ public class Tile : MonoBehaviour
     public void OnDropAnimationEnded()
     {
         //animator.enabled = false;
-        if (content != null)
+        if (content != null && !Invalid)
         {
             container.transform.rotation = Quaternion.identity;
             content.transform.rotation = Quaternion.identity;
@@ -295,7 +404,7 @@ public class Tile : MonoBehaviour
                         spetialInteracted(this, spetial);
                     }
                 }
-                StartCoroutine(DelayDrop(.2f));
+                StartCoroutine(DelayDrop(.3f));
             }
             if (backgroundInteracted != null)
             {
@@ -321,42 +430,27 @@ public class Tile : MonoBehaviour
     }
     public Coroutine DropTo(Tile tileToDrop)
     {
-        using (var counter = new ScopedCounter(tileToDrop))
+        if (content != null && !Invalid && IsFallable())
         {
-            if (tileToDrop.dropCount > 2)
-                return null;
+            StopCoroutine(SyncContent());
+            tileToDrop.StopCoroutine(SyncContent());
+            tileToDrop.Invalid = true;
+            tileToDrop.content = content;
+            content = null;
+            tileToDrop.tileType = tileType;
+            Debug.Log("set new content" + tileToDrop.name);
+            Debug.Log(tileToDrop.name + " g " + tileToDrop.content.transform.position + " l " + tileToDrop.content.transform.localPosition);
+            tileToDrop.content.transform.SetParent(tileToDrop.container.transform);
+            Debug.Log(tileToDrop.name + " g " + tileToDrop.content.transform.position + " l " + tileToDrop.content.transform.localPosition);
 
-            if (content != null && !Invalid )
-            {
-                StopCoroutine(SyncContent());
-                tileToDrop.StopCoroutine(SyncContent());
-                tileToDrop.Invalid = true;
-                tileToDrop.content = content;
-                tileToDrop.tileType = tileType;
-                tileToDrop.content.transform.SetParent(tileToDrop.container.transform);
-
-                content = null;
-                tileType.SetMain(TileMap.BasicTileType.None);
-                return StartCoroutine(tileToDrop.SyncContent(true));
-            }
-
-            if(IsFallable() == false || up != null && up.IsFallable() == false)
-            {
-                Coroutine res = null;
-                if (left != null)
-                {
-                    res = left.DropTo(tileToDrop);
-                }
-                if (res == null && right != null)
-                {
-                    res = right.DropTo(tileToDrop);
-                }
-                return res;
-            }
+            tileType.SetMain(TileMap.BasicTileType.None);
+            return StartCoroutine(tileToDrop.SyncContent(true));
         }
+
         return null;
     }
 
+    
 
     public Coroutine CreateBlockedContent(TileMap.BlockedTileType type, int level, bool permanent)
     {

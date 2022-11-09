@@ -249,7 +249,7 @@ public class Match
     private void StackOn(Byte x, Byte y, ref Interval interval, DestructableTiles destructableTiles)
     {
         var type = tiles.GetType(x, y);
-        if (interval.count > 0 && interval.type != type)
+        if (interval.count > 0 && interval.type != type || type == TileMap.BasicTileType.None)
         {
             Sink(ref interval, destructableTiles);
         }

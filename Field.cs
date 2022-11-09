@@ -67,7 +67,6 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
 
         if (WatchDog.CheckIfDirtyAndReset())
         {
-            Debug.Log("dirty");
             Match.DestructableTiles destroy;
             if (match.IsAny(out destroy))
             {
@@ -203,7 +202,6 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
     private void SetPosition(Vector2 position, bool drag)
     {
         Vector2 offsetPosition = ToField(position + tileMap.offset) ;
-        Debug.Log(offsetPosition);
         bool tapped = IsTapped();
         if (actionAllowed && firstPosition != offsetPosition)
         {
