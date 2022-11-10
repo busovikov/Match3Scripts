@@ -44,12 +44,12 @@ public class EndLevel : MonoBehaviour
         boosters.FillAmount(boosterCount);
         boosters.FillPrice(boosterPrice);
 
-        winLabel = transform.Find("Layout/Win").GetComponent<Text>();
+        winLabel = transform.Find("Win").GetComponent<Text>();
         nextBtnLabel = transform.Find("BG/Buttons/Repeat/Text").GetComponent<Text>();
 
-        scoreLabel = transform.Find("Layout/Score Layout/Score").GetComponent<Text>();
-        bestScoreLabel = transform.Find("Layout/Best Layout/Best Score").GetComponent<Text>();
-        totalScoreLabel = transform.Find("Layout/Total Layout/Total Score").GetComponent<Text>();
+        scoreLabel = transform.Find("Score/Score Layout/Score").GetComponent<Text>();
+        bestScoreLabel = transform.Find("Score/Best Layout/Best Score").GetComponent<Text>();
+        totalScoreLabel = transform.Find("Score/Total Layout/Total Score").GetComponent<Text>();
     }
 
     private void OnEnable()

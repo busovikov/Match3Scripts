@@ -12,7 +12,7 @@ public class MainMenu : MonoBehaviour
     {
         credits = transform.Find("Credits").gameObject;
         buttons = transform.Find("Buttons").gameObject;
-        ghost = transform.Find("GameObject/Ghost").gameObject;
+// ghost = transform.Find("GameObject/Ghost").gameObject;
     }
     public void ToCredits()
     {
