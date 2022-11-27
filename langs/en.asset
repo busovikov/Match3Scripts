@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c759d0131523564090353145bf47f10, type: 3}
+  m_Name: en
+  m_EditorClassIdentifier: 
+  _menu_play_time: Time
+  _menu_play_moves: Moves
+  _menu_play_exit: Exit
+  _menu_play_credits: Credits
+  _menu_play_back: Back
+  _menu_play_menu: Menu
+  _menu_play_next: Next
+  _menu_play_repeate: Repeat
+  _hud_score_label: Score
+  _hud_level_label: Level
+  _hud_play_time: Time
+  _hud_play_moves: Moves
+  _popup_win_label: Victory!
+  _popup_lose_label: Not This time!
+  _popup_score_label: 'Score:'
+  _popup_best_label: 'Best:'
+  _popup_total_label: 'Total:'

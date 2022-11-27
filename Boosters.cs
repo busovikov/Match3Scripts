@@ -58,7 +58,7 @@ public class Boosters : MonoBehaviour
         public void Fill(Transform child, BoosterCallback activate_call, BoosterCallback release_call)
         {
             btn = child.GetComponent<Button>();
-            label = btn.transform.GetChild(0).GetComponent<Text>();
+            label = btn.transform.GetChild(1).GetComponent<Text>();
             animation = child.GetComponent<Animator>();
             activate = activate_call;
             release = release_call;

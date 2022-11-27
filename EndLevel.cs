@@ -33,7 +33,7 @@ public class EndLevel : MonoBehaviour
         boosterCount = new Text[(int)Boosters.BoosterType.Count];
         boosterPrice = new Text[(int)Boosters.BoosterType.Count];
 
-        Transform popupBoosters = transform.Find("Layout/Boosters").transform;
+        Transform popupBoosters = transform.Find("BG/Boosters").transform;
         int size = Mathf.Min(popupBoosters.childCount, (int)Boosters.BoosterType.Count);
         for (int i = 0; i < size; i++)
         { 
@@ -44,12 +44,12 @@ public class EndLevel : MonoBehaviour
         boosters.FillAmount(boosterCount);
         boosters.FillPrice(boosterPrice);
 
-        winLabel = transform.Find("Win").GetComponent<Text>();
+        winLabel = transform.Find("BG/Win").GetComponent<Text>();
         nextBtnLabel = transform.Find("BG/Buttons/Repeat/Text").GetComponent<Text>();
 
-        scoreLabel = transform.Find("Score/Score Layout/Score").GetComponent<Text>();
-        bestScoreLabel = transform.Find("Score/Best Layout/Best Score").GetComponent<Text>();
-        totalScoreLabel = transform.Find("Score/Total Layout/Total Score").GetComponent<Text>();
+        scoreLabel = transform.Find("BG/Score/Score").GetComponent<Text>();
+        bestScoreLabel = transform.Find("BG/Score/Best Score").GetComponent<Text>();
+        totalScoreLabel = transform.Find("BG/Score/Total Score").GetComponent<Text>();
     }
 
     private void OnEnable()
@@ -64,13 +64,13 @@ public class EndLevel : MonoBehaviour
         gameObject.SetActive(true);
         if (win)
         {
-            winLabel.text = "Victory!";
-            nextBtnLabel.text = "Next";
+            winLabel.text = Language.current._popup_win_label;
+            nextBtnLabel.text = Language.current._menu_play_next;
         }
         else
         {
-            winLabel.text = "Not This Time!";
-            nextBtnLabel.text = "Again";
+            winLabel.text = Language.current._popup_lose_label;
+            nextBtnLabel.text = Language.current._menu_play_repeate;
         }
         GetComponent<Animator>().SetTrigger("LevelEnd");
     }

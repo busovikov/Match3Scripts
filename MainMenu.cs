@@ -10,8 +10,8 @@ public class MainMenu : MonoBehaviour
 
     private void Awake()
     {
-        credits = transform.Find("Credits").gameObject;
-        buttons = transform.Find("Buttons").gameObject;
+ //       credits = transform.Find("Credits").gameObject;
+ //       buttons = transform.Find("Buttons").gameObject;
 // ghost = transform.Find("GameObject/Ghost").gameObject;
     }
     public void ToCredits()

@@ -92,7 +92,7 @@ public class LevelManager : MonoBehaviour
     public void StartAsMoves(int val)
     {
         SetValue(val);
-        label.text = MovesString;
+        label.text = Language.current._hud_play_moves;
         bonusHeader.text = BonusMovesString;
     }
 
@@ -105,7 +105,7 @@ public class LevelManager : MonoBehaviour
     public void StartAsSeconds(int seconds)
     {
         SetValue(seconds);
-        label.text = TimeString;
+        label.text = Language.current._hud_play_time;
         bonusHeader.text = BonusTimeString;
         running = true;
     }
