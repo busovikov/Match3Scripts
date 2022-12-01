@@ -12,13 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c759d0131523564090353145bf47f10, type: 3}
   m_Name: tr
   m_EditorClassIdentifier: 
-  _menu_play_time: 
-  _menu_play_moves: 
-  _menu_play_exit: 
-  _menu_play_credits: 
-  _hud_score_label: 
-  _hud_best_label: 
-  _hud_total_label: 
-  _hud_level_label: 
-  _hud_play_time: 
-  _hud_play_moves: 
+  _menu_play_time: Zaman
+  _menu_play_moves: Hareketler
+  _menu_play_exit: "\xC7\u0131k\u0131\u015F"
+  _menu_play_credits: "Hakk\u0131nda"
+  _menu_play_back: Geri
+  _menu_play_menu: "Men\xFC"
+  _menu_play_next: Sonraki
+  _menu_play_repeate: Tekrarla
+  _hud_score_label: Puan
+  _hud_level_label: Seviye
+  _hud_play_time: Zaman
+  _hud_play_moves: Hareketler
+  _popup_win_label: "Seviye Tamamland\u0131!"
+  _popup_lose_label: "Bu sefer de\u011Fil!"
+  _popup_score_label: 'Puan:'
+  _popup_best_label: "En iyi:"
+  _popup_total_label: 'Toplam:'

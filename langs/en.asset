@@ -15,7 +15,7 @@ MonoBehaviour:
   _menu_play_time: Time
   _menu_play_moves: Moves
   _menu_play_exit: Exit
-  _menu_play_credits: Credits
+  _menu_play_credits: About
   _menu_play_back: Back
   _menu_play_menu: Menu
   _menu_play_next: Next
@@ -24,7 +24,7 @@ MonoBehaviour:
   _hud_level_label: Level
   _hud_play_time: Time
   _hud_play_moves: Moves
-  _popup_win_label: Victory!
+  _popup_win_label: Level Comlete!
   _popup_lose_label: Not This time!
   _popup_score_label: 'Score:'
   _popup_best_label: 'Best:'
