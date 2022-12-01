@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -23,7 +24,7 @@ public class LevelLoader : MonoBehaviour
     private Animator animator;
     private SoundManager soundManager;
 
-    // Start is called before the first frame update
+    private DateTime lastAd;
     void Awake()
     {
         soundManager = FindObjectOfType<SoundManager>();
@@ -32,6 +33,7 @@ public class LevelLoader : MonoBehaviour
             DontDestroyOnLoad(gameObject);
             Instance = this;
             animator = GetComponent<Animator>();
+            lastAd = DateTime.Now;
         }
         else if (Instance != this)
         {
@@ -84,6 +86,14 @@ public class LevelLoader : MonoBehaviour
 
     IEnumerator MakeTransactionToQuickGame()
     {
+#if PLATFORM_WEBGL
+        if (System.DateTime.Now - lastAd > TimeSpan.FromMinutes(2))
+        {
+            lastAd = System.DateTime.Now;
+            Yandex.ShowFullScreenAdv();
+        }
+#endif
+
         animator.SetTrigger("Out");
 
         yield return new WaitForSeconds(trnsactionTime);
