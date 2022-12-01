@@ -25,6 +25,9 @@ public class LevelLoader : MonoBehaviour
     private SoundManager soundManager;
 
     private DateTime lastAd;
+    private static bool tryToRate = true;
+    private static bool lastWin = false;
+    private static int nextLevel = 0;
     void Awake()
     {
         soundManager = FindObjectOfType<SoundManager>();
@@ -78,16 +81,23 @@ public class LevelLoader : MonoBehaviour
         Instance.StartCoroutine(Instance.MakeTransactionToMenu());
     }
 
-    public static void EndLevel(bool win)
+    public static void EndLevel(bool win, int next_level)
     {
         Instance.endLevelPopup.GetComponent<EndLevel>().Enable(win);
         Instance.soundManager.PlayPopupSound();
+        lastWin = win;
+        nextLevel = next_level;
     }
 
     IEnumerator MakeTransactionToQuickGame()
     {
 #if PLATFORM_WEBGL
-        if (System.DateTime.Now - lastAd > TimeSpan.FromMinutes(2))
+        if (tryToRate && lastWin && nextLevel > 2)
+        {
+            tryToRate = false;
+            Yandex.RateGame();
+        }
+        else if ( !tryToRate && nextLevel > 3 && System.DateTime.Now - lastAd > TimeSpan.FromMinutes(3))
         {
             lastAd = System.DateTime.Now;
             Yandex.ShowFullScreenAdv();
