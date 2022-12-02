@@ -8,13 +8,11 @@ public class ScoreUI : MonoBehaviour
     public float countDuration = 0.5f;
     private Text value;
 
-    private void Awake()
-    {
-        value = GetComponent<Text>();
-    }
     public void Set(int newvalue)
     {
         StopAllCoroutines();
+        if (null == value)
+            value = GetComponent<Text>();
         StartCoroutine(Count(int.Parse(value.text), newvalue)); 
     }
 

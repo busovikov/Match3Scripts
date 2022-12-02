@@ -5,9 +5,13 @@ using UnityEngine.UI;
 
 public class EndLevel : MonoBehaviour
 {
-
+    public GameObject background;
+    public GameObject scull;
+    public GameObject stars;
     public GameObject scoreObject;
     private ScoreManager score;
+    private SoundManager soundManager;
+
 
     public GameObject boostersObject;
     private Boosters boosters;
@@ -17,23 +21,29 @@ public class EndLevel : MonoBehaviour
     private Text winLabel;
     private Text nextBtnLabel;
 
-    private Text scoreLabel;
-    private Text bestScoreLabel;
-    private Text totalScoreLabel;
-    
+    private ScoreUI scoreLabel;
+    private ScoreUI bestScoreLabel;
+    private ScoreUI totalScoreLabel;
+    private ScoreUI coinScoreLabel;
+
     private Text boostersLabel;
 
-    
-    
+    EndLevel()
+    {
+        Events.LevelComplete.AddListener(Enable);
+    }
+
     private void Awake()
     {
+        soundManager = FindObjectOfType<SoundManager>();
+
         score = scoreObject.GetComponent<ScoreManager>();
         boosters = boostersObject.GetComponent<Boosters>();
 
         boosterCount = new Text[(int)Boosters.BoosterType.Count];
         boosterPrice = new Text[(int)Boosters.BoosterType.Count];
 
-        Transform popupBoosters = transform.Find("BG/Boosters").transform;
+        Transform popupBoosters = transform.Find("Boosters").transform;
         int size = Mathf.Min(popupBoosters.childCount, (int)Boosters.BoosterType.Count);
         for (int i = 0; i < size; i++)
         { 
@@ -45,30 +55,47 @@ public class EndLevel : MonoBehaviour
         boosters.FillPrice(boosterPrice);
 
         winLabel = transform.Find("BG/Win").GetComponent<Text>();
-        nextBtnLabel = transform.Find("BG/Buttons/Repeat/Text").GetComponent<Text>();
+        nextBtnLabel = transform.Find("Buttons/Repeat/Text").GetComponent<Text>();
 
-        scoreLabel = transform.Find("BG/Score/Score").GetComponent<Text>();
-        bestScoreLabel = transform.Find("BG/Score/Best Score").GetComponent<Text>();
-        totalScoreLabel = transform.Find("BG/Score/Total Score").GetComponent<Text>();
+        scoreLabel = transform.Find("BG/Score/Score").GetComponent<ScoreUI>();
+        bestScoreLabel = transform.Find("BG/Score/Best Score").GetComponent<ScoreUI>();
+        totalScoreLabel = transform.Find("BG/Score/Total Score").GetComponent<ScoreUI>();
+        coinScoreLabel = transform.Find("Coins/Label/CoinLabel").GetComponent<ScoreUI>();
     }
 
     private void OnEnable()
     {
-        scoreLabel.GetComponent<ScoreUI>().Set(score.current);
-        bestScoreLabel.GetComponent<ScoreUI>().Set(score.GetBest());
-        totalScoreLabel.GetComponent<ScoreUI>().Set(score.total);
+        scoreLabel.Set(score.current);
+        bestScoreLabel.Set(score.GetBest());
+        totalScoreLabel.Set(score.total);
+        coinScoreLabel.Set(score.coin);
+        background.SetActive(true);
+    }
+
+    private void OnDisable()
+    {
+        background.SetActive(false);
     }
 
     public void Enable(bool win)
     {
         gameObject.SetActive(true);
+        
+        soundManager.PlayPopupSound();
+
         if (win)
         {
+            scull.SetActive(false);
+            stars.SetActive(true);
+
             winLabel.text = Language.current._popup_win_label;
             nextBtnLabel.text = Language.current._menu_play_next;
         }
         else
         {
+            scull.SetActive(true);
+            stars.SetActive(false);
+
             winLabel.text = Language.current._popup_lose_label;
             nextBtnLabel.text = Language.current._menu_play_repeate;
         }
@@ -78,11 +105,11 @@ public class EndLevel : MonoBehaviour
     private bool DealOn(Boosters.BoosterType type)
     {
         int price = boosters.Price(type);
-        if (score.total >= price)
+        if (score.coin >= price)
         {
             boosterCount[boosters.Index(type)].text = boosters.AddBooster(type).ToString();
-            score.SubTotalScore(price);
-            totalScoreLabel.GetComponent<ScoreUI>().Set(score.total);
+            score.SubCoinScore(price);
+            coinScoreLabel.Set(score.coin);
             return true;
         }
         return false;

@@ -15,6 +15,19 @@ public class Config
         builder.Clear();
         return str;
     }
+
+    static public void LoadString(string name, out string val, string def)
+    {
+        string str = Name(name);
+        if (PlayerPrefs.HasKey(str))
+        {
+            val = PlayerPrefs.GetString(str);
+        }
+        else
+        {
+            val = def;
+        }
+    }
     static public void LoadInt(string name, out int val, int def)
     {
         string str = Name(name);
@@ -54,6 +67,10 @@ public class Config
         }
     }
 
+    static public void SaveInt(string name, string val)
+    {
+        PlayerPrefs.SetString(Name(name), val);
+    }
     static public void SaveInt(string name, int val)
     {
         PlayerPrefs.SetInt(Name(name), val);

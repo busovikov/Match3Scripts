@@ -13,24 +13,21 @@ public class LevelLoader : MonoBehaviour
         Moves
     }
     
-    public GameObject endLevelPopup;
-
-    public GameMode mode = GameMode.Time;
-    public float trnsactionTime = 1f;
-    public int levelMoves = 0;
-    public int levelTime = 0;
+    public static float trnsactionTime = 1f;
+    public static int levelMoves = 0;
+    public static int levelTime = 0;
     public static LevelLoader Instance;
     
     private Animator animator;
-    private SoundManager soundManager;
 
     private DateTime lastAd;
+
+    public static GameMode mode = GameMode.Time;
     private static bool tryToRate = true;
     private static bool lastWin = false;
     private static int nextLevel = 0;
     void Awake()
     {
-        soundManager = FindObjectOfType<SoundManager>();
         if (Instance == null)
         {
             DontDestroyOnLoad(gameObject);
@@ -41,17 +38,10 @@ public class LevelLoader : MonoBehaviour
         else if (Instance != this)
         {
             // TODO: make endgame manager
-            Instance.endLevelPopup = endLevelPopup;
-            Instance.soundManager = soundManager;
             Instance.animator.Rebind();
             Instance.animator.ResetTrigger("Out");
             Destroy(gameObject);
         }
-    }
-
-    void Start()
-    {
-        
     }
 
     public static void Exit()
@@ -61,13 +51,13 @@ public class LevelLoader : MonoBehaviour
 
     public static void StartGameWithMoves()
     {
-        Instance.mode = GameMode.Moves;
+        mode = GameMode.Moves;
         Instance.StartCoroutine(Instance.MakeTransactionToQuickGame());
     }
 
     public static void StartGameWithTime()
     {
-        Instance.mode = GameMode.Time;
+        mode = GameMode.Time;
         Instance.StartCoroutine(Instance.MakeTransactionToQuickGame());
     }
 
@@ -83,8 +73,7 @@ public class LevelLoader : MonoBehaviour
 
     public static void EndLevel(bool win, int next_level)
     {
-        Instance.endLevelPopup.GetComponent<EndLevel>().Enable(win);
-        Instance.soundManager.PlayPopupSound();
+        Events.LevelComplete.Invoke(win);
         lastWin = win;
         nextLevel = next_level;
     }

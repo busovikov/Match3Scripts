@@ -62,14 +62,14 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
     private void Start()
     {
         Application.targetFrameRate = 60;
-        var movesOrTime = goals.GetGoalForGameMode(LevelLoader.Instance.mode);
-        if (LevelLoader.Instance.mode == LevelLoader.GameMode.Moves)
+        var movesOrTime = goals.GetGoalForGameMode(LevelLoader.mode);
+        if (LevelLoader.mode == LevelLoader.GameMode.Moves)
         {
-            levelManager.StartAsMoves(LevelLoader.Instance.levelMoves > 0 ? LevelLoader.Instance.levelMoves : movesOrTime);
+            levelManager.StartAsMoves(LevelLoader.levelMoves > 0 ? LevelLoader.levelMoves : movesOrTime);
         }
         else
         {
-            levelManager.StartAsSeconds(LevelLoader.Instance.levelTime > 0 ? LevelLoader.Instance.levelTime : movesOrTime);
+            levelManager.StartAsSeconds(LevelLoader.levelTime > 0 ? LevelLoader.levelTime : movesOrTime);
         }
     }
 
@@ -119,7 +119,7 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
                 {
                     tileMap.GetTile(toSwap.first).ExchangeWith(tileMap.GetTile(toSwap.second), null);
                 }
-                else if (LevelLoader.Instance.mode == LevelLoader.GameMode.Moves)
+                else if (LevelLoader.mode == LevelLoader.GameMode.Moves)
                 {
                     levelManager.SubMoves(1);
                 }
@@ -195,7 +195,7 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
         else if (booster.type == Boosters.BoosterType.Add)
         {
             booster--;
-            if (LevelLoader.Instance.mode == LevelLoader.GameMode.Moves)
+            if (LevelLoader.mode == LevelLoader.GameMode.Moves)
             {
                 levelManager.AddMoves(2);
             }

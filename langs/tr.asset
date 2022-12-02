@@ -27,5 +27,7 @@ MonoBehaviour:
   _popup_win_label: "Seviye Tamamland\u0131!"
   _popup_lose_label: "Bu sefer de\u011Fil!"
   _popup_score_label: 'Puan:'
-  _popup_best_label: "En iyi:"
+  _popup_best_label: 'En iyi:'
   _popup_total_label: 'Toplam:'
+  _auth_label: "bonus almak i\xE7in giri\u015F yap"
+  _open_bonus_chest: "A\xC7IK"
