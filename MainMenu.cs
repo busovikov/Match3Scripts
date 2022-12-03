@@ -9,6 +9,8 @@ public class MainMenu : MonoBehaviour
     public GameObject ghost;
     public GameObject lootBox;
     public ScoreManager scoreManager;
+
+    Animator openLootBox = null;
     public void ToCredits()
     {
         buttons.SetActive(false);
@@ -26,6 +28,7 @@ public class MainMenu : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        Events.PlayerInitialized.AddListener(PlayerInitialized);
 #if UNITY_EDITOR
         lootBox.SetActive(Yandex.auth_dumm == false && scoreManager.AuthBonusAvailable());
 #else
@@ -54,20 +57,28 @@ public class MainMenu : MonoBehaviour
 #else
 #if PLATFORM_WEBGL
             Yandex.AuthorizePlayer();
+            openLootBox = lootBox;
 #endif
 #endif
         }
-        else
-        {
-            lootBox.Play("Loot Box Open");
-            scoreManager.AddCoinScore(1);
-            scoreManager.SetLastAuthBonus();
-        }
+
     }
 
-    // Update is called once per frame
-    void Update()
+    private void PlayerInitialized()
     {
-        
+        if (openLootBox != null && Yandex.IsPlayerAuthorized())
+        {
+            if (!scoreManager.AuthBonusAvailable())
+            {
+                lootBox.SetActive(false);
+            }
+            else
+            {
+                openLootBox.Play("Loot Box Open");
+                openLootBox = null;
+                scoreManager.AddCoinScore(1);
+                scoreManager.SetLastAuthBonus();
+            }
+        }
     }
 }

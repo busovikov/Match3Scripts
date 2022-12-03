@@ -29,7 +29,7 @@ public class ScoreManager : MonoBehaviour
     [HideInInspector]
     public int coin = 0;
     [HideInInspector]
-    public string lastAuthBonus = "";
+    public DateTime lastAuthBonus;
 
     void Start()
     {
@@ -39,38 +39,37 @@ public class ScoreManager : MonoBehaviour
             comboBonusAnimator = comboBonus.GetComponent<Animator>();
         }
 
-        Config.LoadInt(ScoreBestTimeString, out bestTime, bestTime);
-        Config.LoadInt(ScoreBestMovesString, out bestMoves, bestMoves);
-        Config.LoadInt(ScoreTotalString, out total, total);
-        Config.LoadInt(ScoreCoinString, out coin, coin);
-        Config.LoadString(ScoreCoinAuthBonusLastString, out lastAuthBonus, lastAuthBonus);
+        Config.Instance.LoadScoreBestTime(out bestTime);
+        Config.Instance.LoadScoreBestMoves(out bestMoves);
+        Config.Instance.LoadScoreTotal(out total);
+        Config.Instance.LoadScoreCoin(out coin);
+        Config.LoadLastAuthBonusDate(out lastAuthBonus);
     }
 
     public void SetLastAuthBonus()
     {
-        lastAuthBonus = DateTime.Now.ToString();
-        Config.SaveInt(ScoreCoinAuthBonusLastString, lastAuthBonus);
+        lastAuthBonus = DateTime.Now;
+        Config.SaveLastAuthBonusDate(lastAuthBonus);
     }
 
     public bool AuthBonusAvailable()
     {
-        Config.LoadString(ScoreCoinAuthBonusLastString, out lastAuthBonus, lastAuthBonus);
-        DateTime d = lastAuthBonus != "" ? DateTime.Parse(lastAuthBonus) : DateTime.UnixEpoch;
-        return (DateTime.Now - d).TotalDays > 1;
+        Config.LoadLastAuthBonusDate(out lastAuthBonus);
+        return (DateTime.Now - lastAuthBonus).TotalDays > 1;
     }
     public void SubCoinScore(int val)
     {
         if (val > 0 && coin >= val)
         {
             coin -= val;
-            Config.SaveInt(ScoreCoinString, coin);
+            Config.SaveScoreCoin(coin);
         }
     }
 
     public void AddCoinScore(int val)
     {
         coin += val;
-        Config.SaveInt(ScoreCoinString, coin);
+        Config.SaveScoreCoin(coin);
     }
 
     public void SubTotalScore(int val)
@@ -78,7 +77,7 @@ public class ScoreManager : MonoBehaviour
         if (val > 0 && total >= val)
         {
             total -= val;
-            Config.SaveInt(ScoreTotalString, total);
+            Config.SaveScoreTotal(total);
         }
     }
 
@@ -112,10 +111,17 @@ public class ScoreManager : MonoBehaviour
         if (GetBest() < current)
         {
             SetBest(current);
-            Config.SaveInt(LevelLoader.mode == LevelLoader.GameMode.Moves ? ScoreBestMovesString : ScoreBestTimeString, current);
+            if (LevelLoader.mode == LevelLoader.GameMode.Moves)
+            {
+                Config.SaveScoreBestMoves(current);
+            }
+            else
+            {
+                Config.SaveScoreBestTime(current);
+            }
         }
         total += current;
-        Config.SaveInt(ScoreTotalString, total);
+        Config.SaveScoreTotal(total);
     }
 
     internal void AddCombo(int count)

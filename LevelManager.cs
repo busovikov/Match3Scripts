@@ -43,16 +43,28 @@ public class LevelManager : MonoBehaviour
 
     private void Start()
     {
-        string LevelString = LevelLoader.mode == LevelLoader.GameMode.Moves ? LevelMovesString : LevelTimesString;
-        Config.LoadInt(LevelString, out this.level, this.level);
+        if (LevelLoader.mode == LevelLoader.GameMode.Moves)
+        {
+            Config.Instance.LoadLevelMoves(out this.level);
+        }
+        else
+        {
+            Config.Instance.LoadLevelTime(out this.level);
+        }
         stringLevel.Set(level);
     }
 
     public void NextLevel()
     {
         level++;
-        string LevelString = LevelLoader.mode == LevelLoader.GameMode.Moves ? LevelMovesString : LevelTimesString;
-        Config.SaveInt(LevelString, level);
+        if (LevelLoader.mode == LevelLoader.GameMode.Moves)
+        {
+            Config.SaveLevelMoves(level);
+        }
+        else
+        {
+            Config.SaveLevelTime(level);
+        }
         stringLevel.Set(level);
         stringValue.Set(0);
     }

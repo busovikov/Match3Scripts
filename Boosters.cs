@@ -46,12 +46,12 @@ public class Boosters : MonoBehaviour
 
         public void Save()
         {
-            Config.SaveInt(Name(), amount);
+            Config.SaveBooster(type, amount);
         }
 
         public void Load()
         {
-            Config.LoadInt(Name(), out amount, amount);
+            Config.Instance.LoadBooster(type, out amount);
             UpdateLable();
         }
 

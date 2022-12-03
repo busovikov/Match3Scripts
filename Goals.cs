@@ -33,12 +33,12 @@ public class Goals : MonoBehaviour
         gameMode = gm;
         if (gm == LevelLoader.GameMode.Time)
         {
-            Config.LoadInt(goalTimeString, out goal, goal);
+            Config.Instance.LoadGoalTime(out goal);
             moves = (goal / 3) * 5;
         }
         else
         {
-            Config.LoadInt(goalMovesString, out goal, goal);
+            Config.Instance.LoadGoalMoves(out goal);
             moves = (goal / 3) * 2;
         }
         next = goal + 3;
@@ -66,11 +66,11 @@ public class Goals : MonoBehaviour
             label.text = 0.ToString();
             if (gameMode == LevelLoader.GameMode.Time)
             {
-                Config.SaveInt(goalTimeString, next);
+                Config.SaveGoalTime(next);
             }
             else
             {
-                Config.SaveInt(goalMovesString, next);
+                Config.SaveGoalMoves(next);
             }
             reached = true;
         }
