@@ -6,11 +6,7 @@ using UnityEngine.UI;
 
 public class ScoreManager : MonoBehaviour
 {
-    private static readonly string ScoreCoinAuthBonusLastString = "Score.Coin.Auth.Bonus.Last";
-    private static readonly string ScoreCoinString = "Score.Coin";
-    private static readonly string ScoreTotalString = "Score.Total";
-    private static readonly string ScoreBestTimeString = "Score.Best.Time";
-    private static readonly string ScoreBestMovesString = "Score.Best.Moves";
+    
     private static readonly string TriggerName = "Combo";
 
     public GameObject comboBonus;
@@ -72,15 +68,6 @@ public class ScoreManager : MonoBehaviour
         Config.SaveScoreCoin(coin);
     }
 
-    public void SubTotalScore(int val)
-    {
-        if (val > 0 && total >= val)
-        {
-            total -= val;
-            Config.SaveScoreTotal(total);
-        }
-    }
-
     public void AddScore(int val)
     {
         if (val > 0 )
@@ -122,6 +109,9 @@ public class ScoreManager : MonoBehaviour
         }
         total += current;
         Config.SaveScoreTotal(total);
+#if PLATFORM_WEBGL && !UNITY_EDITOR
+        Yandex.SetScoreToLeaderBoard(total);
+#endif
     }
 
     internal void AddCombo(int count)

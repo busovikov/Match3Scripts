@@ -148,7 +148,7 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
                 }
                 else
                     score.current = 0;
-                LevelLoader.EndLevel(goals.reached, levelManager.level);
+                Events.LevelComplete.Invoke(goals.reached, levelManager.level);
             }
         }
     }

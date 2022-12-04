@@ -77,7 +77,7 @@ public class EndLevel : MonoBehaviour
         background.SetActive(false);
     }
 
-    public void Enable(bool win)
+    public void Enable(bool win, int nextLevel)
     {
         gameObject.SetActive(true);
         

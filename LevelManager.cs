@@ -60,10 +60,16 @@ public class LevelManager : MonoBehaviour
         if (LevelLoader.mode == LevelLoader.GameMode.Moves)
         {
             Config.SaveLevelMoves(level);
+#if PLATFORM_WEBGL && !UNITY_EDITOR
+        Yandex.SetBestMovesToLeaderBoard(level);
+#endif
         }
         else
         {
             Config.SaveLevelTime(level);
+#if PLATFORM_WEBGL && !UNITY_EDITOR
+        Yandex.SetBestTimeToLeaderBoard(level);
+#endif
         }
         stringLevel.Set(level);
         stringValue.Set(0);

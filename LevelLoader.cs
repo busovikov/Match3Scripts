@@ -20,12 +20,9 @@ public class LevelLoader : MonoBehaviour
     
     private Animator animator;
 
-    private DateTime lastAd;
 
     public static GameMode mode = GameMode.Time;
-    private static bool tryToRate = true;
-    private static bool lastWin = false;
-    private static int nextLevel = 0;
+    
     void Awake()
     {
         if (Instance == null)
@@ -33,7 +30,6 @@ public class LevelLoader : MonoBehaviour
             DontDestroyOnLoad(gameObject);
             Instance = this;
             animator = GetComponent<Animator>();
-            lastAd = DateTime.Now;
         }
         else if (Instance != this)
         {
@@ -71,27 +67,11 @@ public class LevelLoader : MonoBehaviour
         Instance.StartCoroutine(Instance.MakeTransactionToMenu());
     }
 
-    public static void EndLevel(bool win, int next_level)
-    {
-        Events.LevelComplete.Invoke(win);
-        lastWin = win;
-        nextLevel = next_level;
-    }
-
     IEnumerator MakeTransactionToQuickGame()
     {
-#if PLATFORM_WEBGL
-        if (tryToRate && lastWin && nextLevel > 2)
-        {
-            tryToRate = false;
-            Yandex.RateGame();
-        }
-        else if ( !tryToRate && nextLevel > 3 && System.DateTime.Now - lastAd > TimeSpan.FromMinutes(3))
-        {
-            lastAd = System.DateTime.Now;
-            Yandex.ShowFullScreenAdv();
-        }
-#endif
+        Advert.Instance.ShowAd();
+
+        yield return Advert.Instance.WaitForAdvertDone();
 
         animator.SetTrigger("Out");
 
