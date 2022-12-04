@@ -25,5 +25,6 @@ public class LangObject : ScriptableObject
 
     public string _auth_label;
     public string _open_bonus_chest;
+    public string _developed_by;
 
 }

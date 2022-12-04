@@ -29,5 +29,7 @@ MonoBehaviour:
   _popup_score_label: 'Puan:'
   _popup_best_label: 'En iyi:'
   _popup_total_label: 'Toplam:'
-  _auth_label: "bonus almak i\xE7in giri\u015F yap"
-  _open_bonus_chest: "A\xC7IK"
+  _auth_label: "Skor tablosuna eri\u015Fmek, ilerlemeyi kaydetmek ve bonus almak
+    i\xE7in giri\u015F yap\u0131n"
+  _open_bonus_chest: "Giri\u015F yapmak"
+  _developed_by: "taraf\u0131ndan geli\u015Ftirilmi\u015F"

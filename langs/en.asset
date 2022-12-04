@@ -29,5 +29,7 @@ MonoBehaviour:
   _popup_score_label: 'Score:'
   _popup_best_label: 'Best:'
   _popup_total_label: 'Total:'
-  _auth_label: Login to get bonus
-  _open_bonus_chest: OPEN
+  _auth_label: Log in to have access to the leaderboard, save progress and get a
+    bonus
+  _open_bonus_chest: Log in
+  _developed_by: developed by
