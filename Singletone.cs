@@ -1,5 +1,7 @@
 ﻿
 using UnityEngine;
+using UnityEngine.SceneManagement;
+
 public class Singletone<T> : MonoBehaviour where T : Component
 {
     private static T instance;
@@ -24,5 +26,18 @@ public class Singletone<T> : MonoBehaviour where T : Component
     protected void Awake()
     {
         instance = this as T;
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        Init();
     }
+
+    virtual public void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    { 
+    
+    }
+    virtual public void Init()
+    { 
+    
+    }
+
+   
 }

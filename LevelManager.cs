@@ -7,10 +7,6 @@ using UnityEngine.UI;
 public class LevelManager : MonoBehaviour
 {
     private static readonly string TriggerName = "Bonus";
-    private static readonly string LevelMovesString = "Level.Moves";
-    private static readonly string LevelTimesString = "Level.Times";
-    private static readonly string MovesString = "Moves";
-    private static readonly string TimeString = "Time";
     private static readonly string BonusMovesString = "More moves  +";
     private static readonly string BonusTimeString = "More time  +";
 
@@ -25,8 +21,30 @@ public class LevelManager : MonoBehaviour
     [HideInInspector]
     public int moves = 0;
     [HideInInspector]
-    public int level;
-    [HideInInspector]
+    public int level
+    {
+        get 
+        { 
+            return LevelLoader.mode == LevelLoader.GameMode.Moves ? Config.GetStats().levelMoves : Config.GetStats().levelTime; 
+        }
+        set 
+        {
+            if (LevelLoader.mode == LevelLoader.GameMode.Moves)
+            {
+                Config.SaveLevelMoves(value);
+#if PLATFORM_WEBGL && !UNITY_EDITOR
+        Yandex.SetBestMovesToLeaderBoard(value);
+#endif
+            }
+            else
+            {
+                Config.SaveLevelTime(value);
+#if PLATFORM_WEBGL && !UNITY_EDITOR
+        Yandex.SetBestTimeToLeaderBoard(value);
+#endif
+            }
+        }
+    }
     public bool running = false;
 
     public Text label;
@@ -38,39 +56,16 @@ public class LevelManager : MonoBehaviour
         bonusHeader = bonus.transform.Find("Header").GetComponent<Text>();
         bonusVal = bonus.transform.Find("Val").GetComponent<Text>();
         bonusAnimator = bonus.GetComponent<Animator>();
-        level = 1;
     }
 
     private void Start()
     {
-        if (LevelLoader.mode == LevelLoader.GameMode.Moves)
-        {
-            Config.Instance.LoadLevelMoves(out this.level);
-        }
-        else
-        {
-            Config.Instance.LoadLevelTime(out this.level);
-        }
         stringLevel.Set(level);
     }
 
     public void NextLevel()
     {
         level++;
-        if (LevelLoader.mode == LevelLoader.GameMode.Moves)
-        {
-            Config.SaveLevelMoves(level);
-#if PLATFORM_WEBGL && !UNITY_EDITOR
-        Yandex.SetBestMovesToLeaderBoard(level);
-#endif
-        }
-        else
-        {
-            Config.SaveLevelTime(level);
-#if PLATFORM_WEBGL && !UNITY_EDITOR
-        Yandex.SetBestTimeToLeaderBoard(level);
-#endif
-        }
         stringLevel.Set(level);
         stringValue.Set(0);
     }

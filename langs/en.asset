@@ -33,3 +33,7 @@ MonoBehaviour:
     bonus
   _open_bonus_chest: Log in
   _developed_by: developed by
+  _purchase_popup_close_button: Close
+  _purchase_description_coin5: 5 Coins
+  _purchase_description_coin20: 20 Coins  - 10% OFF
+  _purchase_description_coin100: 100 Coins  - 50% OFF

@@ -9,7 +9,6 @@ public class EndLevel : MonoBehaviour
     public GameObject scull;
     public GameObject stars;
     public GameObject scoreObject;
-    private ScoreManager score;
     private SoundManager soundManager;
 
 
@@ -26,18 +25,26 @@ public class EndLevel : MonoBehaviour
     private ScoreUI totalScoreLabel;
     private ScoreUI coinScoreLabel;
 
+    private GameObject authButton;
+
     private Text boostersLabel;
 
     EndLevel()
     {
         Events.LevelComplete.AddListener(Enable);
+        Events.PlayerStatsUpdated.AddListener(UpdateUi);
+    }
+
+    public void ActivateBuyCoinsPopup()
+    {
+        ScoreManager.Instance.OnBuyCoinsPopupActivated();
+
     }
 
     private void Awake()
     {
         soundManager = FindObjectOfType<SoundManager>();
 
-        score = scoreObject.GetComponent<ScoreManager>();
         boosters = boostersObject.GetComponent<Boosters>();
 
         boosterCount = new Text[(int)Boosters.BoosterType.Count];
@@ -61,15 +68,59 @@ public class EndLevel : MonoBehaviour
         bestScoreLabel = transform.Find("BG/Score/Best Score").GetComponent<ScoreUI>();
         totalScoreLabel = transform.Find("BG/Score/Total Score").GetComponent<ScoreUI>();
         coinScoreLabel = transform.Find("Coins/Label/CoinLabel").GetComponent<ScoreUI>();
+
+        authButton = transform.Find("Coins/AuthButton").gameObject;
+
+        Events.PlayerInitialized.AddListener(PlayerInitialized);
     }
 
     private void OnEnable()
     {
-        scoreLabel.Set(score.current);
-        bestScoreLabel.Set(score.GetBest());
-        totalScoreLabel.Set(score.total);
-        coinScoreLabel.Set(score.coin);
+        UpdateUi();
+    }
+
+    public void UpdateUi()
+    {
+        scoreLabel.Set(ScoreManager.Instance.current);
+        bestScoreLabel.Set(ScoreManager.Instance.best);
+        totalScoreLabel.Set(ScoreManager.Instance.total);
+        coinScoreLabel.Set(ScoreManager.Instance.coin);
         background.SetActive(true);
+
+#if UNITY_EDITOR
+        authButton.SetActive(Yandex.auth_dumm == false);
+#else
+#if PLATFORM_WEBGL
+        authButton.SetActive(!Yandex.IsPlayerAuthorized());
+#endif
+#endif
+    }
+
+    public void Auth()
+    {
+        bool auth = false;
+#if UNITY_EDITOR
+        auth = Yandex.auth_dumm;
+#else
+#if PLATFORM_WEBGL
+        auth = Yandex.IsPlayerAuthorized();
+#endif
+#endif
+        if (auth == false)
+        {
+#if UNITY_EDITOR
+            Yandex.auth_dumm = true;
+#else
+#if PLATFORM_WEBGL
+            Yandex.AuthorizePlayer();
+#endif
+#endif
+        }
+    }
+
+    private void PlayerInitialized()
+    {
+        UpdateUi();
     }
 
     private void OnDisable()
@@ -105,11 +156,11 @@ public class EndLevel : MonoBehaviour
     private bool DealOn(Boosters.BoosterType type)
     {
         int price = boosters.Price(type);
-        if (score.coin >= price)
+        if (ScoreManager.Instance.coin >= price)
         {
             boosterCount[boosters.Index(type)].text = boosters.AddBooster(type).ToString();
-            score.SubCoinScore(price);
-            coinScoreLabel.Set(score.coin);
+            ScoreManager.Instance.SubCoinScore(price);
+            coinScoreLabel.Set(ScoreManager.Instance.coin);
             return true;
         }
         return false;

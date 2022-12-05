@@ -5,18 +5,30 @@ using UnityEngine.UI;
 
 public class Goals : MonoBehaviour
 {
-    static readonly string goalTimeString = "Goal.Time";
-    static readonly string goalMovesString = "Goal.Moves";
-
     public Sprite[] images;
     public Text label;
 
     [HideInInspector]
     public int type;
     private Animator animator;
-    private LevelLoader.GameMode gameMode;
-    private int goal = 9;
-    private int next = 0;
+
+    private int IncCoef { get { return LevelLoader.mode == LevelLoader.GameMode.Moves ? 2 : 5; } }
+    private int goal
+    {
+        get { return LevelLoader.mode == LevelLoader.GameMode.Moves ? Config.GetStats().goalsMoves : Config.GetStats().goalsTime; }
+        set 
+        {
+            if (LevelLoader.mode == LevelLoader.GameMode.Time)
+            {
+                Config.SaveGoalTime(value);
+            }
+            else
+            {
+                Config.SaveGoalMoves(value);
+            }
+        }
+    }
+    private int current = 0;
 
     public bool reached = false;
 
@@ -27,23 +39,19 @@ public class Goals : MonoBehaviour
         animator = GetComponent<Animator>();
     }
 
-    public int GetGoalForGameMode(LevelLoader.GameMode gm)
+    private void OnEnable()
     {
-        int moves = 0;
-        gameMode = gm;
-        if (gm == LevelLoader.GameMode.Time)
-        {
-            Config.Instance.LoadGoalTime(out goal);
-            moves = (goal / 3) * 5;
-        }
-        else
-        {
-            Config.Instance.LoadGoalMoves(out goal);
-            moves = (goal / 3) * 2;
-        }
-        next = goal + 3;
+        current = goal;
+        UpdateUI();
+    }
+    void UpdateUI()
+    { 
         label.text = goal.ToString();
-        return moves;
+    }
+
+    public int GetMovesForGameMode()
+    {
+        return goal / 3 * IncCoef;
     }
 
     // Update is called once per frame
@@ -56,22 +64,15 @@ public class Goals : MonoBehaviour
     {
         animator.SetTrigger("Add");
         collision.gameObject.SetActive(false);
-        goal--;
-        if (goal > 0)
+        current--;
+        if (current > 0)
         {
-            label.text = goal.ToString();
+            label.text = current.ToString();
         }
         else if (!reached)
         {
             label.text = 0.ToString();
-            if (gameMode == LevelLoader.GameMode.Time)
-            {
-                Config.SaveGoalTime(next);
-            }
-            else
-            {
-                Config.SaveGoalMoves(next);
-            }
+            goal += 3;
             reached = true;
         }
     }

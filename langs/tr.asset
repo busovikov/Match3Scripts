@@ -33,3 +33,7 @@ MonoBehaviour:
     i\xE7in giri\u015F yap\u0131n"
   _open_bonus_chest: "Giri\u015F yapmak"
   _developed_by: "taraf\u0131ndan geli\u015Ftirilmi\u015F"
+  _purchase_popup_close_button: Kapat
+  _purchase_description_coin5: 5 Jeton
+  _purchase_description_coin20: 20 Jeton - %10 indirim
+  _purchase_description_coin100: 100 Jeton - %50 indirim

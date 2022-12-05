@@ -31,7 +31,7 @@ public class Config : Singletone<Config>
             }
         }
 
-        public static void Load()
+        public void Load()
         {
 #if UNITY_EDITOR
             string data;
@@ -39,11 +39,12 @@ public class Config : Singletone<Config>
             Instance.playerStats = JsonUtility.FromJson<PlayerStats>(data);
 #else
 #if PLATFORM_WEBGL
-            Yandex.LoadData(Keys(typeof(PlayerStats).Name));
+            // Keys(typeof(PlayerStats).Name) not used at this time 
+            Yandex.LoadData();
 #endif
 #endif
         }
-        public static void Save()
+        public void Save()
         {
             var data = JsonUtility.ToJson(Instance.playerStats);
 
@@ -60,6 +61,16 @@ public class Config : Singletone<Config>
 
     PlayerStats playerStats = new PlayerStats();
 
+    public void Reset()
+    {
+        playerStats = new PlayerStats();
+        playerStats.Save();
+    }
+    public static PlayerStats GetStats()
+    {
+        return Instance.playerStats;
+    }
+
     private static readonly string Ver = "Ver.1.0.";
     static StringBuilder builder = new StringBuilder();
 
@@ -69,9 +80,9 @@ public class Config : Singletone<Config>
         timer = 2;
     }
 
-    private void Start()
+    public override void Init()
     {
-        PlayerStats.Load();
+        playerStats.Load();
     }
 
     private void Update()
@@ -82,7 +93,7 @@ public class Config : Singletone<Config>
             if (timer <= 0)
             {
                 timer = 0;
-                PlayerStats.Save();
+                playerStats.Save();
             }
         }
     }
@@ -92,6 +103,7 @@ public class Config : Singletone<Config>
     public void PlayerStatsReceived(string data)
     {
         var received = JsonUtility.FromJson<PlayerStats>(data);
+        Debug.Log(data);
         if (received != null)
         {
             Instance.playerStats = received;
@@ -101,7 +113,7 @@ public class Config : Singletone<Config>
 
     public void PlayerReinitialized()
     {
-        PlayerStats.Load();
+        playerStats.Load();
     }
 
     static string Keys(params string[] list)
@@ -206,16 +218,9 @@ public class Config : Singletone<Config>
         coin = Instance.playerStats.coins;
     }
 
-    internal static void LoadLastAuthBonusDate(out DateTime lastAuthBonus)
+    internal static DateTime LoadLastAuthBonusDate()
     {
-        if (Instance.playerStats.lastAuthBonusDate == "")
-        {
-            lastAuthBonus = DateTime.UnixEpoch;
-        }
-        else
-        {
-            lastAuthBonus = DateTime.Parse(Instance.playerStats.lastAuthBonusDate);
-        }
+        return Instance.playerStats.lastAuthBonusDate == "" ? DateTime.UnixEpoch : DateTime.Parse(Instance.playerStats.lastAuthBonusDate);
     }
 
     internal static void SaveBooster(Boosters.BoosterType type, int amount)
@@ -255,22 +260,7 @@ public class Config : Singletone<Config>
             val = def;
         }
     }
-    public void LoadInt(string name, out int val, int def)
-    {
-        string str = Name(name);
-        if (PlayerPrefs.HasKey(str))
-        {
-            val = PlayerPrefs.GetInt(str);
-        }
-        else
-        {
-            val = def;
-        }
-#if !UNITY_EDITOR
-        Yandex.LoadData(Keys(name));
-
-#endif
-    }
+    
 
     static public void LoadBool(string name, out bool val, bool def)
     {

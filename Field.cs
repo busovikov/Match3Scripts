@@ -17,7 +17,6 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
     private TileMap tileMap;
     private Match match;
     private UIManager uiManager;
-    private ScoreManager score;
     private LevelManager levelManager;
     private SoundManager soundManager;
     private Boosters boosters;
@@ -51,7 +50,6 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
         goals = tileMap.goal.GetComponent<Goals>();
         match = new Match(tileMap);
 
-        score = FindObjectOfType<ScoreManager>();
         levelManager = FindObjectOfType<LevelManager>();
 
         colliderCache = GetComponent<BoxCollider2D>();
@@ -62,7 +60,7 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
     private void Start()
     {
         Application.targetFrameRate = 60;
-        var movesOrTime = goals.GetGoalForGameMode(LevelLoader.mode);
+        var movesOrTime = goals.GetMovesForGameMode();
         if (LevelLoader.mode == LevelLoader.GameMode.Moves)
         {
             levelManager.StartAsMoves(LevelLoader.levelMoves > 0 ? LevelLoader.levelMoves : movesOrTime);
@@ -92,8 +90,8 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
             {
                 if (comboCount >= 0)
                 {
-                    score.AddCombo(comboCount);
-                    score.AddScore(10 * comboCount);
+                    ScoreManager.Instance.AddCombo(comboCount);
+                    ScoreManager.Instance.AddScore(10 * comboCount);
                     comboCount = -1;
                 }
 
@@ -139,15 +137,15 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
             if ((goals.reached || !levelManager.Check()) && processing == 0)
             {
                 processing++;
-                score.AddScore(levelManager.moves * 10 + levelManager.moves);
+                ScoreManager.Instance.AddScore(levelManager.moves * 10 + levelManager.moves);
                 
                 if (goals.reached)
                 {
-                    score.SetTotalScore();
+                    ScoreManager.Instance.SetTotalScore();
                     levelManager.NextLevel();
                 }
                 else
-                    score.current = 0;
+                    ScoreManager.Instance.current = 0;
                 Events.LevelComplete.Invoke(goals.reached, levelManager.level);
             }
         }
@@ -300,7 +298,7 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
         if (destroy.destructionList.Count > 0)
         {
             int currentScore = Enumerable.Range(1, destroy.destructionList.Count - 3).Select((index) => index).Sum() + destroy.destructionList.Count;
-            score.AddScore(currentScore);
+            ScoreManager.Instance.AddScore(currentScore);
             soundManager.PlayPop();
         }
 

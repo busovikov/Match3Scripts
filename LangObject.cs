@@ -27,4 +27,9 @@ public class LangObject : ScriptableObject
     public string _open_bonus_chest;
     public string _developed_by;
 
+    public string _purchase_popup_close_button;
+    public string _purchase_description_coin5;
+    public string _purchase_description_coin20;
+    public string _purchase_description_coin100;
+
 }

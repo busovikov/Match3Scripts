@@ -17,6 +17,9 @@ public class Advert : Singletone<Advert>
     {
         Events.LevelComplete.AddListener(OnLevelEnd);
         lastAd = DateTime.Now;
+#if PLATFORM_WEBGL && !UNITY_EDITOR
+        Yandex.IsPlayerAbleReview();
+#endif
     }
 
     void OnAdvertComplete()
@@ -42,7 +45,7 @@ public class Advert : Singletone<Advert>
     }
     public void ShowAd()
     {
-#if PLATFORM_WEBGL
+#if PLATFORM_WEBGL && !UNITY_EDITOR
         if (tryToRate && lastWin && nextLevel > 2 && Yandex.IsPlayerAuthorized())
         {
             tryToRate = false;

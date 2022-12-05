@@ -8,7 +8,6 @@ public class MainMenu : MonoBehaviour
     public GameObject buttons;
     public GameObject ghost;
     public GameObject lootBox;
-    public ScoreManager scoreManager;
 
     Animator openLootBox = null;
     public void ToCredits()
@@ -28,12 +27,13 @@ public class MainMenu : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        Config.GetStats();
         Events.PlayerInitialized.AddListener(PlayerInitialized);
 #if UNITY_EDITOR
-        lootBox.SetActive(Yandex.auth_dumm == false && scoreManager.AuthBonusAvailable());
+        lootBox.SetActive(Yandex.auth_dumm == false && ScoreManager.Instance.AuthBonusAvailable());
 #else
 #if PLATFORM_WEBGL
-        lootBox.SetActive(Yandex.IsPlayerAuthorized() == false && scoreManager.AuthBonusAvailable());
+        lootBox.SetActive(Yandex.IsPlayerAuthorized() == false && ScoreManager.Instance.AuthBonusAvailable());
 #endif
 #endif
 
@@ -64,11 +64,15 @@ public class MainMenu : MonoBehaviour
 
     }
 
+    public void ButtonPlayerReset()
+    {
+        Config.Instance.Reset();
+    }
     private void PlayerInitialized()
     {
         if (openLootBox != null && Yandex.IsPlayerAuthorized())
         {
-            if (!scoreManager.AuthBonusAvailable())
+            if (!ScoreManager.Instance.AuthBonusAvailable())
             {
                 lootBox.SetActive(false);
             }
@@ -76,8 +80,8 @@ public class MainMenu : MonoBehaviour
             {
                 openLootBox.Play("Loot Box Open");
                 openLootBox = null;
-                scoreManager.AddCoinScore(1);
-                scoreManager.SetLastAuthBonus();
+                ScoreManager.Instance.AddCoinScore(1);
+                ScoreManager.Instance.SetLastAuthBonus();
             }
         }
     }
