@@ -114,6 +114,7 @@ public class Config : Singletone<Config>
     public void PlayerReinitialized()
     {
         playerStats.Load();
+        Advert.Instance.CheckForReview();
     }
 
     static string Keys(params string[] list)

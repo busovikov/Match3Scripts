@@ -17,6 +17,11 @@ public class Advert : Singletone<Advert>
     {
         Events.LevelComplete.AddListener(OnLevelEnd);
         lastAd = DateTime.Now;
+        CheckForReview();
+    }
+
+    public void CheckForReview()
+    {
 #if PLATFORM_WEBGL && !UNITY_EDITOR
         Yandex.IsPlayerAbleReview();
 #endif
@@ -27,9 +32,9 @@ public class Advert : Singletone<Advert>
         isActive = false;
     }
 
-    void OnCanReview(bool val)
+    void OnCanReview(int val)
     {
-        tryToRate = val;
+        tryToRate = val != 0;
     }
 
     void OnLevelEnd(bool win, int level)
@@ -50,6 +55,7 @@ public class Advert : Singletone<Advert>
         {
             tryToRate = false;
             Yandex.RateGame();
+            isActive = true;
         }
         else if (nextLevel > 3 && DateTime.Now - lastAd > TimeSpan.FromMinutes(2))
         {
