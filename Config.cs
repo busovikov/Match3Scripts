@@ -80,9 +80,9 @@ public class Config : Singletone<Config>
         timer = 2;
     }
 
-    public override void Init()
+    public Config()
     {
-        playerStats.Load();
+        Events.PlayerInitialized.AddListener(PlayerInitialized);
     }
 
     private void Update()
@@ -107,14 +107,15 @@ public class Config : Singletone<Config>
         if (received != null)
         {
             Instance.playerStats = received;
+            Events.PlayerStatsUpdated.Invoke();
         }
-        Events.PlayerInitialized.Invoke();
+        
     }
 
-    public void PlayerReinitialized()
+    public void PlayerInitialized(bool auth)
     {
+        Debug.Log("Config event PlayerInitialized " + auth);
         playerStats.Load();
-        Advert.Instance.CheckForReview();
     }
 
     static string Keys(params string[] list)

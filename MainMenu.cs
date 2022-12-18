@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class MainMenu : MonoBehaviour
 {
@@ -8,6 +9,8 @@ public class MainMenu : MonoBehaviour
     public GameObject buttons;
     public GameObject ghost;
     public GameObject lootBox;
+
+    Button lootBoxButton;
 
     Animator openLootBox = null;
     public void ToCredits()
@@ -24,53 +27,52 @@ public class MainMenu : MonoBehaviour
         credits.SetActive(false);
     }
 
-    // Start is called before the first frame update
+    private void Awake()
+    {
+        Events.PlayerInitialized.AddListener(PlayerInitialized);
+        Events.PlayerAuthorized.AddListener(PlayerAuthorized);
+    }
     void Start()
     {
         Config.GetStats();
-        Events.PlayerInitialized.AddListener(PlayerInitialized);
-#if UNITY_EDITOR
-        lootBox.SetActive(Yandex.auth_dumm == false && ScoreManager.Instance.AuthBonusAvailable());
-#else
-#if PLATFORM_WEBGL
-        lootBox.SetActive(Yandex.IsPlayerAuthorized() == false && ScoreManager.Instance.AuthBonusAvailable());
-#endif
-#endif
-
     }
 
 
     public void OpenLootBox(Animator lootBox)
     {
-        bool auth = false;
-#if UNITY_EDITOR
-        auth = Yandex.auth_dumm;
-#else
-#if PLATFORM_WEBGL
-        auth = Yandex.IsPlayerAuthorized();
-#endif
-#endif
-        if (auth == false)
+        if (openLootBox == null)
         {
+            openLootBox = lootBox;
 #if UNITY_EDITOR
-            Yandex.auth_dumm = true;
+            PlayerAuthorized(true);
 #else
 #if PLATFORM_WEBGL
             Yandex.AuthorizePlayer();
-            openLootBox = lootBox;
 #endif
 #endif
         }
 
     }
 
+    public void OpenLootBox(Button button)
+    {
+        lootBoxButton = button;
+        lootBoxButton.interactable = false;
+    }
+
     public void ButtonPlayerReset()
     {
         Config.Instance.Reset();
     }
-    private void PlayerInitialized()
+    private void PlayerInitialized(bool auth)
     {
-        if (openLootBox != null && Yandex.IsPlayerAuthorized())
+        lootBox.SetActive(auth == false && ScoreManager.Instance.AuthBonusAvailable());
+    }
+    private void PlayerAuthorized(bool auth)
+    {
+        Debug.Log("MainMenu event PlayerAuthorized");
+        lootBoxButton.interactable = !auth;
+        if (openLootBox != null && auth)
         {
             if (!ScoreManager.Instance.AuthBonusAvailable())
             {
@@ -79,10 +81,11 @@ public class MainMenu : MonoBehaviour
             else
             {
                 openLootBox.Play("Loot Box Open");
-                openLootBox = null;
+                lootBoxButton.gameObject.SetActive(false);
                 ScoreManager.Instance.AddCoinScore(1);
                 ScoreManager.Instance.SetLastAuthBonus();
             }
         }
+        openLootBox = null;
     }
 }

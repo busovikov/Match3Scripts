@@ -47,31 +47,37 @@ public class LevelLoader : MonoBehaviour
 
     public static void StartGameWithMoves()
     {
+        Instance.StopAllCoroutines();
         mode = GameMode.Moves;
         Instance.StartCoroutine(Instance.MakeTransactionToQuickGame());
     }
 
     public static void StartGameWithTime()
     {
+        Instance.StopAllCoroutines();
         mode = GameMode.Time;
         Instance.StartCoroutine(Instance.MakeTransactionToQuickGame());
     }
 
     public static void RepeatLevel()
     {
+        Instance.StopAllCoroutines();
         Instance.StartCoroutine(Instance.MakeTransactionToQuickGame());
     }
 
     public static void GoToMainMenu()
     {
+        Instance.StopAllCoroutines();
         Instance.StartCoroutine(Instance.MakeTransactionToMenu());
     }
 
     IEnumerator MakeTransactionToQuickGame()
     {
+        Debug.Log("MakeTransactionToQuickGame");
         Advert.Instance.ShowAd();
-
+        Debug.Log("Advert.Instance.ShowAd();");
         yield return Advert.Instance.WaitForAdvertDone();
+        Debug.Log("Advert.Instance.WaitForAdvertDone()");
 
         animator.SetTrigger("Out");
 

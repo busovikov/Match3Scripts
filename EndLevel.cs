@@ -26,6 +26,9 @@ public class EndLevel : MonoBehaviour
     private ScoreUI coinScoreLabel;
 
     private GameObject authButton;
+    private Button authBtn;
+
+    private bool auth = false;
 
     private Text boostersLabel;
 
@@ -33,6 +36,8 @@ public class EndLevel : MonoBehaviour
     {
         Events.LevelComplete.AddListener(Enable);
         Events.PlayerStatsUpdated.AddListener(UpdateUi);
+        Events.PlayerInitialized.AddListener(PlayerInitialized);
+        Events.PlayerAuthorized.AddListener(PlayerAuthorized);
     }
 
     public void ActivateBuyCoinsPopup()
@@ -70,8 +75,11 @@ public class EndLevel : MonoBehaviour
         coinScoreLabel = transform.Find("Coins/Label/CoinLabel").GetComponent<ScoreUI>();
 
         authButton = transform.Find("Coins/AuthButton").gameObject;
+        authBtn = authButton.transform.GetChild(0).GetComponent<Button>();
 
-        Events.PlayerInitialized.AddListener(PlayerInitialized);
+#if PLATFORM_WEBGL && !UNITY_EDITOR
+        auth = !Yandex.GetNoAuth();
+#endif
     }
 
     private void OnEnable()
@@ -81,45 +89,42 @@ public class EndLevel : MonoBehaviour
 
     public void UpdateUi()
     {
-        scoreLabel.Set(ScoreManager.Instance.current);
-        bestScoreLabel.Set(ScoreManager.Instance.best);
-        totalScoreLabel.Set(ScoreManager.Instance.total);
-        coinScoreLabel.Set(ScoreManager.Instance.coin);
-        background.SetActive(true);
+        if (gameObject.activeSelf)
+        {
+            Debug.Log("UpdateUi()");
+            scoreLabel.Set(ScoreManager.Instance.current);
+            bestScoreLabel.Set(ScoreManager.Instance.best);
+            totalScoreLabel.Set(ScoreManager.Instance.total);
+            coinScoreLabel.Set(ScoreManager.Instance.coin);
+            background.SetActive(true);
 
-#if UNITY_EDITOR
-        authButton.SetActive(Yandex.auth_dumm == false);
-#else
-#if PLATFORM_WEBGL
-        authButton.SetActive(!Yandex.IsPlayerAuthorized());
-#endif
-#endif
+            authButton.SetActive(auth == false);
+        }
     }
 
     public void Auth()
     {
-        bool auth = false;
+        authBtn.interactable = false;
 #if UNITY_EDITOR
-        auth = Yandex.auth_dumm;
+        PlayerAuthorized(true);
 #else
 #if PLATFORM_WEBGL
-        auth = Yandex.IsPlayerAuthorized();
+        Yandex.AuthorizePlayer();
 #endif
 #endif
-        if (auth == false)
-        {
-#if UNITY_EDITOR
-            Yandex.auth_dumm = true;
-#else
-#if PLATFORM_WEBGL
-            Yandex.AuthorizePlayer();
-#endif
-#endif
-        }
     }
 
-    private void PlayerInitialized()
+    private void PlayerInitialized(bool _auth)
     {
+        Debug.Log("EndLevel event PlayerInitialized " + auth);
+        auth = _auth;
+    }
+
+    private void PlayerAuthorized(bool _auth)
+    {
+        Debug.Log("EndLevel event PlayerAuthorized");
+        auth = _auth;
+        authBtn.interactable = !_auth;
         UpdateUi();
     }
 

@@ -33,14 +33,14 @@ public class LevelManager : MonoBehaviour
             {
                 Config.SaveLevelMoves(value);
 #if PLATFORM_WEBGL && !UNITY_EDITOR
-        Yandex.SetBestMovesToLeaderBoard(value);
+                Yandex.SetBestMovesToLeaderBoard(value);
 #endif
             }
             else
             {
                 Config.SaveLevelTime(value);
 #if PLATFORM_WEBGL && !UNITY_EDITOR
-        Yandex.SetBestTimeToLeaderBoard(value);
+                Yandex.SetBestTimeToLeaderBoard(value);
 #endif
             }
         }
