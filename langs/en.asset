@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c759d0131523564090353145bf47f10, type: 3}
   m_Name: en
   m_EditorClassIdentifier: 
-  _menu_play_time: Time
-  _menu_play_moves: Moves
+  _menu_play_time: Time Mode
+  _menu_play_moves: Turn-based Mode
   _menu_play_exit: Exit
   _menu_play_credits: About
   _menu_play_back: Back

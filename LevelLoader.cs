@@ -73,11 +73,9 @@ public class LevelLoader : MonoBehaviour
 
     IEnumerator MakeTransactionToQuickGame()
     {
-        Debug.Log("MakeTransactionToQuickGame");
+        
         Advert.Instance.ShowAd();
-        Debug.Log("Advert.Instance.ShowAd();");
         yield return Advert.Instance.WaitForAdvertDone();
-        Debug.Log("Advert.Instance.WaitForAdvertDone()");
 
         animator.SetTrigger("Out");
 

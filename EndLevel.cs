@@ -76,7 +76,10 @@ public class EndLevel : MonoBehaviour
 
         authButton = transform.Find("Coins/AuthButton").gameObject;
         authBtn = authButton.transform.GetChild(0).GetComponent<Button>();
+    }
 
+    private void Start()
+    {
 #if PLATFORM_WEBGL && !UNITY_EDITOR
         auth = !Yandex.GetNoAuth();
 #endif

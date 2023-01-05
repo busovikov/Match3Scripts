@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c759d0131523564090353145bf47f10, type: 3}
   m_Name: tr
   m_EditorClassIdentifier: 
-  _menu_play_time: Zaman
-  _menu_play_moves: Hareketler
+  _menu_play_time: Zaman Modu
+  _menu_play_moves: "S\u0131ra Tabanl\u0131 Mod"
   _menu_play_exit: "\xC7\u0131k\u0131\u015F"
   _menu_play_credits: "Hakk\u0131nda"
   _menu_play_back: Geri

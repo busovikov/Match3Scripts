@@ -53,14 +53,9 @@ public class Advert : Singletone<Advert>
         if (isActive)
             return;
         TimeSpan t = DateTime.Now - lastAd;
-        Debug.Log("time " + t.TotalMinutes.ToString());
-        Debug.Log("next level " + nextLevel);
-        
 
         if (tryToRate && lastWin && nextLevel > 2)
         {
-            Debug.Log("Rate");
-            isActive = true;
             tryToRate = false;
 #if PLATFORM_WEBGL && !UNITY_EDITOR
             Yandex.RateGame();
@@ -68,7 +63,6 @@ public class Advert : Singletone<Advert>
         }
         else if (nextLevel > 3 && DateTime.Now - lastAd > TimeSpan.FromMinutes(2))
         {
-            Debug.Log("Advert");
             isActive = true;
             lastAd = DateTime.Now;
 #if PLATFORM_WEBGL && !UNITY_EDITOR
