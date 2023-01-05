@@ -35,9 +35,6 @@ public class MainMenu : MonoBehaviour
     void Start()
     {
         Config.GetStats();
-#if PLATFORM_WEBGL && !UNITY_EDITOR
-        Yandex.GetBestTimeToLeaderBoard();
-#endif
     }
 
 
