@@ -60,15 +60,7 @@ public class Field : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDra
     private void Start()
     {
         Application.targetFrameRate = 60;
-        var movesOrTime = goals.GetMovesForGameMode();
-        if (LevelLoader.mode == LevelLoader.GameMode.Moves)
-        {
-            levelManager.StartAsMoves(LevelLoader.levelMoves > 0 ? LevelLoader.levelMoves : movesOrTime);
-        }
-        else
-        {
-            levelManager.StartAsSeconds(LevelLoader.levelTime > 0 ? LevelLoader.levelTime : movesOrTime);
-        }
+        levelManager.Start(goals);
     }
 
     bool Compare(Vector2 v2, Vector3 v3)

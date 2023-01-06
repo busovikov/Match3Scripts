@@ -57,6 +57,7 @@ public class Advert : Singletone<Advert>
         if (tryToRate && lastWin && nextLevel > 2)
         {
             tryToRate = false;
+            isActive = true;
 #if PLATFORM_WEBGL && !UNITY_EDITOR
             Yandex.RateGame();
 #endif

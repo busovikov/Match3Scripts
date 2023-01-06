@@ -29,6 +29,8 @@ MonoBehaviour:
   _popup_score_label: 'Puan:'
   _popup_best_label: 'En iyi:'
   _popup_total_label: 'Toplam:'
+  _popup_start_collect: Toplamak
+  _popup_start_button_start: "Ba\u015Flang\u0131\xE7"
   _auth_label: "Skor tablosuna eri\u015Fmek, ilerlemeyi kaydetmek ve bonus almak
     i\xE7in giri\u015F yap\u0131n"
   _open_bonus_chest: "Giri\u015F yapmak"

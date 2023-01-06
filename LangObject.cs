@@ -23,6 +23,9 @@ public class LangObject : ScriptableObject
     public string _popup_best_label;
     public string _popup_total_label;
 
+    public string _popup_start_collect;
+    public string _popup_start_button_start;
+
     public string _auth_label;
     public string _open_bonus_chest;
     public string _developed_by;

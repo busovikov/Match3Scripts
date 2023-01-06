@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -12,7 +13,7 @@ public class Goals : MonoBehaviour
     public int type;
     private Animator animator;
 
-    private int IncCoef { get { return LevelLoader.mode == LevelLoader.GameMode.Moves ? 2 : 5; } }
+    private int IncCoef { get { return LevelLoader.mode == LevelLoader.GameMode.Moves ? 2 : 10; } }
     private int goal
     {
         get { return LevelLoader.mode == LevelLoader.GameMode.Moves ? Config.GetStats().goalsMoves : Config.GetStats().goalsTime; }
@@ -41,12 +42,12 @@ public class Goals : MonoBehaviour
 
     private void OnEnable()
     {
-        current = goal;
         UpdateUI();
     }
-    void UpdateUI()
-    { 
-        label.text = goal.ToString();
+    public void UpdateUI()
+    {
+        current = goal;
+        label.text = current.ToString();
     }
 
     public int GetMovesForGameMode()
@@ -75,5 +76,15 @@ public class Goals : MonoBehaviour
             goal += 3;
             reached = true;
         }
+    }
+
+    internal Sprite GetSprite()
+    {
+        return GetComponent<Image>().sprite;
+    }
+
+    internal int GetAmount()
+    {
+        return goal;
     }
 }

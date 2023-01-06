@@ -177,6 +177,7 @@ public class Boosters : MonoBehaviour
         int size = Mathf.Min(counts.Length, boosters.Length);
         for (int i = 0; i < size; i++)
         {
+            boosters[i].Load();
             counts[i].text = boosters[i].amount.ToString();
         }
     }

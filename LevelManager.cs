@@ -15,7 +15,10 @@ public class LevelManager : MonoBehaviour
     private Animator bonusAnimator;
     public ScoreUI stringValue;
     public ScoreUI stringLevel;
-    
+
+    public GameObject startLevelPopup;
+    public GameObject startBackground;
+
     private float accumulator = 0;
 
     [HideInInspector]
@@ -49,8 +52,13 @@ public class LevelManager : MonoBehaviour
 
     public Text label;
     public GameObject bonus;
+    private bool started = false;
+    private Goals goals;
 
-    // Start is called before the first frame update
+    public LevelManager()
+    {
+        Events.PlayerStatsUpdated.AddListener(UpdateUi);
+    }
     void Awake()
     {
         bonusHeader = bonus.transform.Find("Header").GetComponent<Text>();
@@ -72,6 +80,9 @@ public class LevelManager : MonoBehaviour
 
      public bool Check()
     {
+        if (!started)
+            return true;
+
         if (running && moves > 0)
         {
             accumulator += Time.deltaTime;
@@ -82,6 +93,37 @@ public class LevelManager : MonoBehaviour
             }
         }
         return moves > 0;
+    }
+
+    internal void Start(Goals _goals)
+    {
+        goals = _goals;
+        UpdateUi();
+        startLevelPopup.SetActive(true);
+        startBackground.SetActive(true);
+    }
+
+    public void OnStartConfirm()
+    {
+        startLevelPopup.SetActive(false);
+        startBackground.SetActive(false);
+        running = LevelLoader.mode != LevelLoader.GameMode.Moves;
+        started = true;
+    }
+
+    public void UpdateUi()
+    {
+        if (goals == null)
+            return;
+
+        goals.UpdateUI();
+
+        SetValue(goals.GetMovesForGameMode());
+        Image img = startLevelPopup.transform.Find("Goal").GetComponent<Image>();
+        Text txt = startLevelPopup.transform.Find("Amount").GetComponent<Text>();
+        img.sprite = goals.GetSprite();
+        txt.text = goals.GetAmount().ToString();
+        stringLevel.Set(level);
     }
 
     public void AddMoves(int val)
@@ -102,26 +144,23 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-    public void StartAsMoves(int val)
-    {
-        SetValue(val);
-        label.text = Language.current._hud_play_moves;
-        bonusHeader.text = BonusMovesString;
-    }
-
     private void SetValue(int val)
     {
-        moves = val;
+        if (LevelLoader.mode == LevelLoader.GameMode.Moves)
+        {
+            moves = val;
+            label.text = Language.current._hud_play_moves;
+            bonusHeader.text = BonusMovesString;
+        }
+        else
+        {
+            moves = val;
+            label.text = Language.current._hud_play_time;
+            bonusHeader.text = BonusTimeString;
+        }
         stringValue.Set(moves);
     }
 
-    public void StartAsSeconds(int seconds)
-    {
-        SetValue(seconds);
-        label.text = Language.current._hud_play_time;
-        bonusHeader.text = BonusTimeString;
-        running = true;
-    }
 
     
 }

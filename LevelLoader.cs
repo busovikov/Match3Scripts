@@ -14,8 +14,6 @@ public class LevelLoader : MonoBehaviour
     }
     
     public static float trnsactionTime = 1f;
-    public static int levelMoves = 0;
-    public static int levelTime = 0;
     public static LevelLoader Instance;
     
     private Animator animator;
